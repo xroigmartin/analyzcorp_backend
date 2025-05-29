@@ -1,5 +1,6 @@
 package xroigmartin.analyzcorp.infrastructure.out.adapter.sec;
 
+import org.apache.commons.collections4.MapUtils;
 import org.springframework.stereotype.Component;
 import xroigmartin.analyzcorp.domain.model.Company;
 
@@ -11,7 +12,7 @@ import java.util.Map;
 public class SecCompanyJsonParser {
 
     public List<Company> parseCompanyJsonToListOfCompanies(Map<String, Map<String, Object>> rowData) {
-        if(rowData.isEmpty()) return List.of();
+        if(MapUtils.isEmpty(rowData)) return List.of();
 
         List<Company> companies = new ArrayList<>();
 
