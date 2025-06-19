@@ -12,6 +12,6 @@ public class CreateAccountUseCase {
     private AccountCreateRepository accountCreateRepository;
 
     public Account execute(Account account) {
-        return accountCreateRepository.save(account);
+        return accountCreateRepository.create(account);
     }
 }

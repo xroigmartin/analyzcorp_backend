@@ -2,10 +2,12 @@ package xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.ad
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountCreateRepository;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountGetAllRepository;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountGetByIdRepository;
+import xroigmartin.analyzcorp.finance.account.domain.repository.AccountUpdateRepository;
 import xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.entity.AccountEntity;
 import xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.repository.AccountRepository;
 
@@ -14,7 +16,8 @@ import java.util.Optional;
 
 @Service
 @AllArgsConstructor
-public class AccountPersistenceAdapter implements AccountGetAllRepository, AccountCreateRepository, AccountGetByIdRepository {
+public class AccountPersistenceAdapter implements AccountGetAllRepository, AccountCreateRepository,
+        AccountGetByIdRepository, AccountUpdateRepository {
 
     private final AccountRepository accountRepository;
 
@@ -29,7 +32,7 @@ public class AccountPersistenceAdapter implements AccountGetAllRepository, Accou
     }
 
     @Override
-    public Account save(Account account) {
+    public Account create(Account account) {
         var accountEntity = new AccountEntity(null, account.name());
         accountRepository.save(accountEntity);
         return toDto(accountEntity);
@@ -40,5 +43,18 @@ public class AccountPersistenceAdapter implements AccountGetAllRepository, Accou
         return accountRepository
                 .findById(id)
                 .map(this::toDto);
+    }
+
+    @Override
+    public Account update(Account account) {
+        Long id = account.id();
+        AccountEntity accountEntity = accountRepository.findById(id)
+                .orElseThrow(() -> new AccountNotFoundByIdException(id));
+
+        accountEntity.setName(account.name());
+
+        AccountEntity updatedAccountEntity = accountRepository.save(accountEntity);
+
+        return toDto(updatedAccountEntity);
     }
 }
