@@ -1,11 +1,11 @@
 package xroigmartin.analyzcorp.finance.account.application;
 
-import net.datafaker.Faker;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import shared.domain.BaseTest;
 import xroigmartin.analyzcorp.finance.account.application.use_case.GetAccountByIdUseCase;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountGetByIdRepository;
@@ -17,9 +17,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
-class GetAccountByIdUseCaseTest {
-
-    private final Faker faker = new Faker();
+class GetAccountByIdUseCaseTest extends BaseTest {
 
     @Mock
     private AccountGetByIdRepository repository;

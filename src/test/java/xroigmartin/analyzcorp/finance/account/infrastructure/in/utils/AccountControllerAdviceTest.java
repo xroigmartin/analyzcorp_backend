@@ -1,9 +1,9 @@
 package xroigmartin.analyzcorp.finance.account.infrastructure.in.utils;
 
-import net.datafaker.Faker;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import shared.domain.BaseTest;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.shared.infrastructure.in.dto.ApiError;
 import xroigmartin.analyzcorp.shared.infrastructure.in.dto.ApiResponse;
@@ -12,15 +12,14 @@ import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class AccountControllerAdviceTest {
+class AccountControllerAdviceTest extends BaseTest {
 
-    private final Faker faker = new Faker();
     private final AccountControllerAdvice advice = new AccountControllerAdvice();
 
     @Test
     void whenAccountNotFound_thenReturnsNotFoundResponse() {
         // Given
-        AccountNotFoundByIdException ex = new AccountNotFoundByIdException(99L);
+        AccountNotFoundByIdException ex = new AccountNotFoundByIdException(faker.number().randomNumber());
 
         // When
         ResponseEntity<ApiResponse<Void>> response = advice.handleNotFound(ex);

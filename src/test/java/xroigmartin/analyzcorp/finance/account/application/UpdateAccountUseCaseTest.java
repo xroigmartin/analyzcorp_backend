@@ -1,11 +1,11 @@
 package xroigmartin.analyzcorp.finance.account.application;
 
-import net.datafaker.Faker;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import shared.domain.BaseTest;
 import xroigmartin.analyzcorp.finance.account.application.use_case.UpdateAccountUseCase;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountUpdateRepository;
@@ -15,9 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-class UpdateAccountUseCaseTest {
-
-    private final Faker faker = new Faker();
+class UpdateAccountUseCaseTest extends BaseTest {
 
     @Mock
     private AccountUpdateRepository updateRepository;
@@ -28,9 +26,10 @@ class UpdateAccountUseCaseTest {
     @Test
     void givenValidAccount_whenExecute_thenReturnsUpdatedAccount() {
         // Given
+        long accountId = faker.number().randomNumber();
         String name = faker.name().firstName();
-        Account input = new Account(1L, name);
-        Account expected = new Account(1L, name);
+        Account input = new Account(accountId, name);
+        Account expected = new Account(accountId, name);
         given(updateRepository.update(input)).willReturn(expected);
 
         // When
