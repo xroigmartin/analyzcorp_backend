@@ -1,5 +1,12 @@
 package xroigmartin.analyzcorp.finance.account.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -7,12 +14,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import shared.domain.BaseTest;
 import xroigmartin.analyzcorp.finance.account.application.use_case.CreateAccountUseCase;
+import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNameAlreadyExistsException;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountCreateRepository;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.BDDMockito.given;
+import xroigmartin.analyzcorp.finance.account.domain.repository.AccountExistsRepository;
 
 @ExtendWith(MockitoExtension.class)
 class CreateAccountUseCaseTest extends BaseTest {
@@ -20,35 +25,44 @@ class CreateAccountUseCaseTest extends BaseTest {
     @Mock
     private AccountCreateRepository accountCreateRepository;
 
+    @Mock
+    private AccountExistsRepository accountExistsRepository;
+
     @InjectMocks
-    private CreateAccountUseCase createAccountUseCase;
+    private CreateAccountUseCase useCase;
 
     @Test
-    void givenValidAccount_whenExecute_thenReturnsCreatedAccount() {
+    void execute_whenAccountDoesNotExist_createsAccountSuccessfully() {
         // Given
-        String accountName = faker.name().firstName();
-        Account input = new Account(null, accountName);
-        Account created = new Account(1L, accountName);
+        String name = faker.name().firstName();
+        Account input = new Account(null, name);
+        Account created = new Account(1L, name);
+
+        given(accountExistsRepository.existsAccountByName(name)).willReturn(false);
         given(accountCreateRepository.create(input)).willReturn(created);
 
         // When
-        Account result = createAccountUseCase.execute(input);
+        Account result = useCase.execute(input);
 
         // Then
-        assertThat(result).isEqualTo(created);
+        assertThat(result.id()).isEqualTo(1L);
+        assertThat(result.name()).isEqualTo(name);
     }
 
     @Test
-    void whenRepositoryThrowsException_thenPropagateException() {
+    void execute_whenAccountNameAlreadyExists_throwsException() {
         // Given
-        Account input = new Account(null, faker.name().firstName());
-        given(accountCreateRepository.create(input))
-                .willThrow(new RuntimeException("Creation failed"));
+        String name = faker.name().firstName();
+        Account input = new Account(null, name);
+
+        given(accountExistsRepository.existsAccountByName(name)).willReturn(true);
 
         // When / Then
-        assertThatThrownBy(() -> createAccountUseCase.execute(input))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Creation failed");
+        assertThatThrownBy(() -> useCase.execute(input))
+                .isInstanceOf(AccountNameAlreadyExistsException.class)
+                .hasMessageContaining(name);
+
+        verify(accountCreateRepository, never()).create(any());
     }
 }
 

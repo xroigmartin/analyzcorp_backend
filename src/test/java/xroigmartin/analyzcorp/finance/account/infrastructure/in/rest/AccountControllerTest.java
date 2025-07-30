@@ -1,185 +1,226 @@
 package xroigmartin.analyzcorp.finance.account.infrastructure.in.rest;
 
-import org.assertj.core.groups.Tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 import shared.domain.BaseTest;
 import xroigmartin.analyzcorp.finance.account.application.use_case.CreateAccountUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.DeleteAccountUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.GetAccountByIdUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.GetAllAccountsUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.UpdateAccountUseCase;
+import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNameAlreadyExistsException;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
-import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.AccountDTO;
 import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.CreateAccountDTO;
 import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.UpdateAccountRequestDTO;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.ApiResponse;
+import xroigmartin.analyzcorp.finance.account.infrastructure.in.utils.AccountControllerAdvice;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(AccountController.class)
+@Import(AccountControllerAdvice.class)
 class AccountControllerTest extends BaseTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private GetAllAccountsUseCase getAllAccountsUseCase;
 
-    @Mock
-    private GetAccountByIdUseCase getAccountByIdUseCase;
-
-    @Mock
+    @MockBean
     private CreateAccountUseCase createAccountUseCase;
 
-    @Mock
-    private UpdateAccountUseCase updateUseCase;
+    @MockBean
+    private GetAccountByIdUseCase getAccountByIdUseCase;
 
-    @Mock
+    @MockBean
+    private UpdateAccountUseCase updateAccountUseCase;
+
+    @MockBean
     private DeleteAccountUseCase deleteAccountUseCase;
 
-    @InjectMocks
-    private AccountController controller;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
-    void getAccounts_shouldReturnListOfDtos() {
-        // Given
+    void getAccounts_returnsListOfAccounts() throws Exception {
+        List<Account> accounts = List.of(
+                new Account(faker.number().randomNumber(), faker.name().firstName()),
+                new Account(faker.number().randomNumber(), faker.name().firstName())
+        );
 
-        Account a1 = new Account(faker.number().randomNumber(), faker.name().firstName());
-        Account a2 = new Account(faker.number().randomNumber(), faker.name().firstName());
+        given(getAllAccountsUseCase.execute()).willReturn(accounts);
 
-        given(getAllAccountsUseCase.execute()).willReturn(Arrays.asList(a1, a2));
-
-        // When
-        ResponseEntity<List<AccountDTO>> response = controller.getAccounts();
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        List<AccountDTO> dtos = response.getBody();
-        assertThat(dtos).extracting(AccountDTO::id, AccountDTO::name)
-                .containsExactlyInAnyOrder(
-                        Tuple.tuple(a1.id(), a1.name()),
-                        Tuple.tuple(a2.id(), a2.name())
-                );
+        mockMvc.perform(get("/api/accounts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.error").doesNotExist())
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 
     @Test
-    void getAccountById_whenExists_thenReturnDto() {
-        // Given
-        long accountId = faker.number().randomNumber();
-        String accountName = faker.name().firstName();
-        Account a = new Account(accountId, accountName);
-        given(getAccountByIdUseCase.execute(accountId)).willReturn(Optional.of(a));
-
-        // When
-        ResponseEntity<AccountDTO> response = controller.getAccountById(accountId);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        AccountDTO dto = response.getBody();
-        assertThat(dto.id()).isEqualTo(accountId);
-        assertThat(dto.name()).isEqualTo(accountName);
-    }
-
-    @Test
-    void getAccountById_whenNotExists_thenReturnNotFound() {
-        // Given
-        long accountId = faker.number().randomNumber();
-        given(getAccountByIdUseCase.execute(accountId)).willReturn(Optional.empty());
-
-        // When
-        ResponseEntity<AccountDTO> response = controller.getAccountById(accountId);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).isNull();
-    }
-
-    @Test
-    void createAccount_shouldReturnCreatedDto() {
-        // Given
-        long accountId = faker.number().randomNumber();
-        String accountName = faker.name().firstName();
-        CreateAccountDTO req = new CreateAccountDTO(accountName);
-        Account created = new Account(accountId, accountName);
-        given(createAccountUseCase.execute(new Account(null, accountName)))
-                .willReturn(created);
-
-        // When
-        ResponseEntity<AccountDTO> response = controller.createAccount(req);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        AccountDTO dto = response.getBody();
-        assertThat(dto.id()).isEqualTo(accountId);
-        assertThat(dto.name()).isEqualTo(accountName);
-    }
-
-    @Test
-    void givenValidUpdate_whenPut_thenReturnsOkResponseWithData() {
-        // Given
+    void getAccountById_returnsAccount() throws Exception {
         Long id = faker.number().randomNumber();
-        String name = faker.name().fullName();
-        UpdateAccountRequestDTO req = new UpdateAccountRequestDTO(name);
+        String name = faker.name().firstName();
+        Account account = new Account(id, name);
+
+        given(getAccountByIdUseCase.execute(id)).willReturn(account);
+
+        mockMvc.perform(get("/api/accounts/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(id))
+                .andExpect(jsonPath("$.data.name").value(name))
+                .andExpect(jsonPath("$.error").doesNotExist())
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void getAccountById_whenNotFound_returns404() throws Exception {
+        Long id = faker.number().randomNumber();
+        String message = String.format("Account with id %d not found", id);
+
+        given(getAccountByIdUseCase.execute(id)).willThrow(new AccountNotFoundByIdException(id));
+
+        mockMvc.perform(get("/api/accounts/{id}", id))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.error.code").value("ACCOUNT_NOT_FOUND"))
+                .andExpect(jsonPath("$.error.message").value(message))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void createAccount_whenValid_returnsCreated() throws Exception {
+        String name = faker.name().firstName();
+        Account created = new Account(faker.number().randomNumber(), name);
+        CreateAccountDTO dto = new CreateAccountDTO(name);
+
+        given(createAccountUseCase.execute(new Account(null, name))).willReturn(created);
+
+        mockMvc.perform(post("/api/accounts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.id").value(created.id()))
+                .andExpect(jsonPath("$.data.name").value(name))
+                .andExpect(jsonPath("$.error").doesNotExist())
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void createAccount_whenNameAlreadyExists_returnsConflict() throws Exception {
+        String name = faker.name().firstName();
+        CreateAccountDTO dto = new CreateAccountDTO(name);
+        String message = String.format("Account name already exists: %s", name);
+
+        given(createAccountUseCase.execute(any())).willThrow(new AccountNameAlreadyExistsException(name));
+
+        mockMvc.perform(post("/api/accounts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.error.code").value("ACCOUNT_NAME_ALREADY_EXISTS"))
+                .andExpect(jsonPath("$.error.message").value(message))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void updateAccount_whenValid_returnsUpdated() throws Exception {
+        Long id = faker.number().randomNumber();
+        String name = faker.name().firstName();
+        UpdateAccountRequestDTO request = new UpdateAccountRequestDTO(name);
         Account updated = new Account(id, name);
-        given(updateUseCase.execute(new Account(id, req.name()))).willReturn(updated);
 
-        // When
-        var response = controller.updateAccount(id, req);
+        given(updateAccountUseCase.execute(new Account(id, name))).willReturn(updated);
 
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        ApiResponse<AccountDTO> body = response.getBody();
-        assertThat(body).isNotNull();
-        assertThat(body.getError()).isNull();
-        assertThat(body.getData()).extracting(AccountDTO::id, AccountDTO::name)
-                .containsExactly(id, name);
-        assertThat(body.getTimestamp()).isNotNull();
+        mockMvc.perform(put("/api/accounts/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(id))
+                .andExpect(jsonPath("$.data.name").value(name))
+                .andExpect(jsonPath("$.error").doesNotExist())
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 
     @Test
-    void givenNonExistingUpdate_whenPut_thenThrowsAccountNotFoundByIdException() {
-        // Given
+    void updateAccount_whenNameConflict_returns409() throws Exception {
         Long id = faker.number().randomNumber();
-        UpdateAccountRequestDTO req = new UpdateAccountRequestDTO(faker.name().fullName());
-        given(updateUseCase.execute(new Account(id, req.name())))
-                .willThrow(new AccountNotFoundByIdException(id));
+        String name = faker.name().firstName();
+        UpdateAccountRequestDTO request = new UpdateAccountRequestDTO(name);
+        String message = String.format("Account name already exists: %s", name);;
 
-        // When / Then
-        assertThrows(AccountNotFoundByIdException.class, () -> controller.updateAccount(id, req));
+        given(updateAccountUseCase.execute(any())).willThrow(new AccountNameAlreadyExistsException(name));
+
+        mockMvc.perform(put("/api/accounts/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.error.code").value("ACCOUNT_NAME_ALREADY_EXISTS"))
+                .andExpect(jsonPath("$.error.message").value(message))
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 
     @Test
-    void deleteAccount_whenValidId_thenReturnsNoContent() {
-        // Given
-        Long accountId = 1L;
+    void updateAccount_whenNotFound_returns404() throws Exception {
+        Long id = faker.number().randomNumber();
+        String name = faker.name().firstName();
+        UpdateAccountRequestDTO request = new UpdateAccountRequestDTO(name);
+        String message = String.format("Account with id %d not found", id);
 
-        // When
-        ResponseEntity<ApiResponse<Void>> response = controller.deleteAccount(accountId);
+        given(updateAccountUseCase.execute(any())).willThrow(new AccountNotFoundByIdException(id));
 
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-        verify(deleteAccountUseCase).execute(accountId);
+        mockMvc.perform(put("/api/accounts/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.error.code").value("ACCOUNT_NOT_FOUND"))
+                .andExpect(jsonPath("$.error.message").value(message))
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 
     @Test
-    void deleteAccount_whenAccountDoesNotExist_thenThrowsAccountNotFoundException() {
-        // Given
-        Long accountId = 99L;
-        doThrow(new AccountNotFoundByIdException(accountId)).when(deleteAccountUseCase).execute(accountId);
+    void deleteAccount_whenExists_returns204() throws Exception {
+        Long id = faker.number().randomNumber();
 
-        // When / Then
-        assertThrows(AccountNotFoundByIdException.class, () -> controller.deleteAccount(accountId));
+        mockMvc.perform(delete("/api/accounts/{id}", id))
+                .andExpect(status().isNoContent());
+
+        verify(deleteAccountUseCase).execute(id);
+    }
+
+    @Test
+    void deleteAccount_whenNotFound_returns404() throws Exception {
+        Long id = faker.number().randomNumber();
+        String message = String.format("Account with id %d not found", id);
+
+        doThrow(new AccountNotFoundByIdException(id)).when(deleteAccountUseCase).execute(id);
+
+        mockMvc.perform(delete("/api/accounts/{id}", id))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.error.code").value("ACCOUNT_NOT_FOUND"))
+                .andExpect(jsonPath("$.error.message").value(message))
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 }

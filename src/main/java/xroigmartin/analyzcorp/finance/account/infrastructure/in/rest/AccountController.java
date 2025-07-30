@@ -1,6 +1,8 @@
 package xroigmartin.analyzcorp.finance.account.infrastructure.in.rest;
 
-import lombok.AllArgsConstructor;
+import java.time.Instant;
+import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +25,6 @@ import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.CreateAccoun
 import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.UpdateAccountRequestDTO;
 import xroigmartin.analyzcorp.shared.infrastructure.in.dto.ApiResponse;
 
-import java.time.Instant;
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/accounts")
 @RequiredArgsConstructor
@@ -38,24 +37,42 @@ public class AccountController {
     private final DeleteAccountUseCase deleteAccountUseCase;
 
     @GetMapping
-    public ResponseEntity<List<AccountDTO>> getAccounts(){
+    public ResponseEntity<ApiResponse<List<AccountDTO>>> getAccounts(){
         var accounts = getAllAccountsUseCase.execute();
-        return ResponseEntity.ok(accounts.stream().map(this::toDto).toList());
+
+        var accountDTOs = accounts.stream().map(this::toDto).toList();
+
+        var apiResponse = ApiResponse.<List<AccountDTO>>builder()
+                .data(accountDTOs)
+                .timestamp(Instant.now().toString())
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AccountDTO> getAccountById(@PathVariable Long id){
-        var accountOptional = getAccountByIdUseCase.execute(id);
-        return accountOptional
-                .map(account -> ResponseEntity.ok(toDto(account)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<AccountDTO>> getAccountById(@PathVariable Long id){
+        var account = getAccountByIdUseCase.execute(id);
+
+        var apiResponse = ApiResponse.<AccountDTO>builder()
+                .data(toDto(account))
+                .timestamp(Instant.now().toString())
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
     }
 
     @PostMapping
-    public ResponseEntity<AccountDTO> createAccount(@RequestBody CreateAccountDTO createAccountDTO){
+    public ResponseEntity<ApiResponse<AccountDTO>> createAccount(@RequestBody CreateAccountDTO createAccountDTO){
         var newAccount = new Account(null, createAccountDTO.name());
         var account = createAccountUseCase.execute(newAccount);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDto(account));
+
+        var apiResponse = ApiResponse.<AccountDTO>builder()
+                .data(toDto(account))
+                .timestamp(Instant.now().toString())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(apiResponse);
     }
 
     @PutMapping("/{id}")
@@ -66,10 +83,12 @@ public class AccountController {
                 .build();
 
         Account accountUpdated = updateAccountUseCase.execute(accountToUpdate);
+
         var apiResponse = ApiResponse.<AccountDTO>builder()
                 .data(toDto(accountUpdated))
                 .timestamp(Instant.now().toString())
                 .build();
+
         return ResponseEntity.ok(apiResponse);
     }
 

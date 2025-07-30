@@ -1,24 +1,24 @@
 package xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.adapter;
 
+import java.util.List;
+import java.util.Optional;
+
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountCreateRepository;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountDeleteRepository;
+import xroigmartin.analyzcorp.finance.account.domain.repository.AccountExistsRepository;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountGetAllRepository;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountGetByIdRepository;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountUpdateRepository;
 import xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.entity.AccountEntity;
 import xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.repository.AccountRepository;
 
-import java.util.List;
-import java.util.Optional;
-
 @Service
 @AllArgsConstructor
 public class AccountPersistenceAdapter implements AccountGetAllRepository, AccountCreateRepository,
-        AccountGetByIdRepository, AccountUpdateRepository, AccountDeleteRepository {
+        AccountGetByIdRepository, AccountUpdateRepository, AccountDeleteRepository, AccountExistsRepository {
 
     private final AccountRepository accountRepository;
 
@@ -49,8 +49,8 @@ public class AccountPersistenceAdapter implements AccountGetAllRepository, Accou
     @Override
     public Account update(Account account) {
         Long id = account.id();
-        AccountEntity accountEntity = accountRepository.findById(id)
-                .orElseThrow(() -> new AccountNotFoundByIdException(id));
+
+        AccountEntity accountEntity = accountRepository.getReferenceById(id);
 
         accountEntity.setName(account.name());
 
@@ -61,10 +61,16 @@ public class AccountPersistenceAdapter implements AccountGetAllRepository, Accou
 
     @Override
     public void deleteById(Long id) {
-        if(!accountRepository.existsById(id)){
-            throw new AccountNotFoundByIdException(id);
-        }
-
         accountRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean existsAccountByName(String name) {
+        return accountRepository.existsByName(name);
+    }
+
+    @Override
+    public boolean existsAccountById(Long id) {
+        return accountRepository.existsById(id);
     }
 }

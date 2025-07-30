@@ -1,5 +1,11 @@
 package xroigmartin.analyzcorp.finance.account.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
+
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -7,52 +13,44 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import shared.domain.BaseTest;
 import xroigmartin.analyzcorp.finance.account.application.use_case.GetAccountByIdUseCase;
+import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountGetByIdRepository;
-
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
 class GetAccountByIdUseCaseTest extends BaseTest {
 
     @Mock
-    private AccountGetByIdRepository repository;
+    private AccountGetByIdRepository accountGetByIdRepository;
 
     @InjectMocks
     private GetAccountByIdUseCase useCase;
 
     @Test
-    void givenExistingAccount_whenExecute_thenReturnsAccount() {
+    void execute_whenAccountExists_returnsAccount() {
         // Given
-        Long id = faker.number().randomNumber(5, false);
-        String name = faker.name().fullName();
-        Account account = new Account(id, name);
-        given(repository.findById(id)).willReturn(Optional.of(account));
+        Long id = faker.number().randomNumber();
+        String name = faker.name().firstName();
+        Account expected = new Account(id, name);
+
+        given(accountGetByIdRepository.findById(id)).willReturn(Optional.of(expected));
 
         // When
-        Optional<Account> result = useCase.execute(id);
+        Account result = useCase.execute(id);
 
         // Then
-        then(repository).should().findById(id);
-        assertThat(result).isPresent()
-                .contains(account);
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
-    void givenNonExistingAccount_whenExecute_thenReturnsEmpty() {
+    void execute_whenAccountDoesNotExist_throwsException() {
         // Given
-        Long id = faker.number().randomNumber(5, false);
-        given(repository.findById(id)).willReturn(Optional.empty());
+        Long id = faker.number().randomNumber();
+        given(accountGetByIdRepository.findById(id)).willReturn(Optional.empty());
 
-        // When
-        Optional<Account> result = useCase.execute(id);
-
-        // Then
-        then(repository).should().findById(id);
-        assertThat(result).isNotPresent();
+        // When / Then
+        assertThatThrownBy(() -> useCase.execute(id))
+                .isInstanceOf(AccountNotFoundByIdException.class)
+                .hasMessageContaining(id.toString());
     }
 }

@@ -1,26 +1,25 @@
 package xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.adapter;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import shared.domain.BaseTest;
-import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
-import xroigmartin.analyzcorp.finance.account.domain.model.Account;
-import xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.entity.AccountEntity;
-import xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.repository.AccountRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import shared.domain.BaseTest;
+import xroigmartin.analyzcorp.finance.account.domain.model.Account;
+import xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.entity.AccountEntity;
+import xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.repository.AccountRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AccountPersistenceAdapterTest extends BaseTest {
@@ -32,16 +31,13 @@ class AccountPersistenceAdapterTest extends BaseTest {
     private AccountPersistenceAdapter adapter;
 
     @Test
-    void getAllAccounts_whenEntitiesExist_thenReturnsDtos() {
-        // Given
+    void getAllAccounts_returnsListOfAccounts() {
         AccountEntity e1 = new AccountEntity(faker.number().randomNumber(), faker.name().firstName());
         AccountEntity e2 = new AccountEntity(faker.number().randomNumber(), faker.name().firstName());
         given(accountRepository.findAll()).willReturn(Arrays.asList(e1, e2));
 
-        // When
         List<Account> result = adapter.getAllAccounts();
 
-        // Then
         assertThat(result)
                 .extracting(Account::id, Account::name)
                 .containsExactly(
@@ -63,7 +59,7 @@ class AccountPersistenceAdapterTest extends BaseTest {
     }
 
     @Test
-    void create_whenValidAccount_thenSavesAndReturnsDto() {
+    void create_savesAndReturnsAccount() {
         // Given
         long accountId = faker.number().randomNumber();
         String accountName = faker.name().firstName();
@@ -83,90 +79,97 @@ class AccountPersistenceAdapterTest extends BaseTest {
     }
 
     @Test
-    void findById_whenEntityExists_thenReturnsDto() {
-        // Given
+    void findById_returnsAccount_whenFound() {
         long accountId = faker.number().randomNumber();
         String accountName = faker.name().firstName();
         AccountEntity entity = new AccountEntity(accountId, accountName);
-        given(accountRepository.findById(accountId)).willReturn(Optional.of(entity));
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(entity));
 
-        // When
         Optional<Account> result = adapter.findById(accountId);
 
-        // Then
         assertThat(result).isPresent();
         assertThat(result.get().id()).isEqualTo(accountId);
         assertThat(result.get().name()).isEqualTo(accountName);
     }
 
     @Test
-    void findById_whenEntityNotExists_thenReturnsEmpty() {
-        // Given
+    void findById_returnsEmpty_whenNotFound() {
         long accountId = faker.number().randomNumber();
-        given(accountRepository.findById(accountId)).willReturn(Optional.empty());
+        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
 
-        // When
         Optional<Account> result = adapter.findById(accountId);
 
-        // Then
-        assertThat(result).isNotPresent();
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void update_whenEntityExists_thenUpdatesAndReturnsDto() {
-        // Given
+    void update_updatesAndReturnsAccount() {
         long accountId = faker.number().randomNumber();
         String accountOldName = faker.name().firstName();
         String accountNewName = faker.name().firstName();
+        Account input = new Account(accountId, accountNewName);
 
-        AccountEntity entity = new AccountEntity(accountId, accountOldName);
-        given(accountRepository.findById(accountId)).willReturn(Optional.of(entity));
-        AccountEntity saved = new AccountEntity(accountId, accountNewName);
-        given(accountRepository.save(entity)).willReturn(saved);
+        AccountEntity existing = new AccountEntity(accountId, accountOldName);
+        AccountEntity updated = new AccountEntity(accountId, accountNewName);
 
-        // When
-        Account result = adapter.update(new Account(accountId, accountNewName));
+        when(accountRepository.getReferenceById(accountId)).thenReturn(existing);
+        when(accountRepository.save(existing)).thenReturn(updated);
 
-        // Then
+        Account result = adapter.update(input);
+
         assertThat(result.id()).isEqualTo(accountId);
         assertThat(result.name()).isEqualTo(accountNewName);
     }
 
     @Test
-    void update_whenEntityNotExists_thenThrowsException() {
-        // Given
-        long accountId = faker.number().randomNumber();
-        given(accountRepository.findById(accountId)).willReturn(Optional.empty());
+    void deleteById_deletesAccount() {
+        Long id = faker.number().randomNumber();
 
-        // When / Then
-        assertThatThrownBy(() -> adapter.update(new Account(accountId, faker.name().firstName())))
-                .isInstanceOf(AccountNotFoundByIdException.class)
-                .hasMessageContaining(String.format("Account with id %d not found", accountId));
+        adapter.deleteById(id);
+
+        verify(accountRepository).deleteById(id);
     }
 
     @Test
-    void deleteById_whenAccountExists_thenDeletesSuccessfully() {
-        // Given
-        Long accountId = 1L;
-        given(accountRepository.existsById(accountId)).willReturn(true);
+    void existsAccountByName_returnsTrue() {
+        String name = faker.name().firstName();
+        when(accountRepository.existsByName(name)).thenReturn(true);
 
-        // When / Then
-        adapter.deleteById(accountId);
+        boolean result = adapter.existsAccountByName(name);
 
-        // Assert no exception thrown, you can also verify deleteById called
-        verify(accountRepository).deleteById(accountId);
+        assertThat(result).isTrue();
     }
 
     @Test
-    void deleteById_whenAccountDoesNotExist_thenThrowsException() {
-        // Given
-        Long accountId = 99L;
-        given(accountRepository.existsById(accountId)).willReturn(false);
+    void existsAccountByName_returnsFalse() {
+        String name = faker.name().firstName();
+        when(accountRepository.existsByName(name)).thenReturn(false);
 
-        // When / Then
-        assertThatThrownBy(() -> adapter.deleteById(accountId))
-                .isInstanceOf(AccountNotFoundByIdException.class)
-                .hasMessageContaining(String.format("Account with id %d not found", accountId));
+        boolean result = adapter.existsAccountByName(name);
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void existsAccountById_returnsFalse() {
+        Long id = faker.number().randomNumber();
+
+        when(accountRepository.existsById(id)).thenReturn(false);
+
+        boolean result = adapter.existsAccountById(id);
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void existsAccountById_returnsTrue() {
+        Long id = faker.number().randomNumber();
+
+        when(accountRepository.existsById(id)).thenReturn(true);
+
+        boolean result = adapter.existsAccountById(id);
+
+        assertThat(result).isTrue();
     }
 }
 
