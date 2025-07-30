@@ -1,8 +1,10 @@
 package xroigmartin.analyzcorp.finance.account.infrastructure.in.rest;
 
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import xroigmartin.analyzcorp.finance.account.application.use_case.CreateAccountUseCase;
+import xroigmartin.analyzcorp.finance.account.application.use_case.DeleteAccountUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.GetAccountByIdUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.GetAllAccountsUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.UpdateAccountUseCase;
@@ -25,13 +28,14 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/accounts")
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class AccountController {
 
     private final GetAllAccountsUseCase getAllAccountsUseCase;
     private final CreateAccountUseCase createAccountUseCase;
     private final GetAccountByIdUseCase getAccountByIdUseCase;
     private final UpdateAccountUseCase updateAccountUseCase;
+    private final DeleteAccountUseCase deleteAccountUseCase;
 
     @GetMapping
     public ResponseEntity<List<AccountDTO>> getAccounts(){
@@ -67,6 +71,12 @@ public class AccountController {
                 .timestamp(Instant.now().toString())
                 .build();
         return ResponseEntity.ok(apiResponse);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteAccount(@PathVariable Long id){
+        deleteAccountUseCase.execute(id);
+        return ResponseEntity.noContent().build();
     }
 
     private AccountDTO toDto(Account account){

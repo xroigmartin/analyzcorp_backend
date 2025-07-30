@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AccountPersistenceAdapterTest extends BaseTest {
@@ -139,6 +140,31 @@ class AccountPersistenceAdapterTest extends BaseTest {
 
         // When / Then
         assertThatThrownBy(() -> adapter.update(new Account(accountId, faker.name().firstName())))
+                .isInstanceOf(AccountNotFoundByIdException.class)
+                .hasMessageContaining(String.format("Account with id %d not found", accountId));
+    }
+
+    @Test
+    void deleteById_whenAccountExists_thenDeletesSuccessfully() {
+        // Given
+        Long accountId = 1L;
+        given(accountRepository.existsById(accountId)).willReturn(true);
+
+        // When / Then
+        adapter.deleteById(accountId);
+
+        // Assert no exception thrown, you can also verify deleteById called
+        verify(accountRepository).deleteById(accountId);
+    }
+
+    @Test
+    void deleteById_whenAccountDoesNotExist_thenThrowsException() {
+        // Given
+        Long accountId = 99L;
+        given(accountRepository.existsById(accountId)).willReturn(false);
+
+        // When / Then
+        assertThatThrownBy(() -> adapter.deleteById(accountId))
                 .isInstanceOf(AccountNotFoundByIdException.class)
                 .hasMessageContaining(String.format("Account with id %d not found", accountId));
     }

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountCreateRepository;
+import xroigmartin.analyzcorp.finance.account.domain.repository.AccountDeleteRepository;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountGetAllRepository;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountGetByIdRepository;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountUpdateRepository;
@@ -17,7 +18,7 @@ import java.util.Optional;
 @Service
 @AllArgsConstructor
 public class AccountPersistenceAdapter implements AccountGetAllRepository, AccountCreateRepository,
-        AccountGetByIdRepository, AccountUpdateRepository {
+        AccountGetByIdRepository, AccountUpdateRepository, AccountDeleteRepository {
 
     private final AccountRepository accountRepository;
 
@@ -56,5 +57,14 @@ public class AccountPersistenceAdapter implements AccountGetAllRepository, Accou
         AccountEntity updatedAccountEntity = accountRepository.save(accountEntity);
 
         return toDto(updatedAccountEntity);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        if(!accountRepository.existsById(id)){
+            throw new AccountNotFoundByIdException(id);
+        }
+
+        accountRepository.deleteById(id);
     }
 }

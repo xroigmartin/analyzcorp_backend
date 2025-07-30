@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import shared.domain.BaseTest;
 import xroigmartin.analyzcorp.finance.account.application.use_case.CreateAccountUseCase;
+import xroigmartin.analyzcorp.finance.account.application.use_case.DeleteAccountUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.GetAccountByIdUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.GetAllAccountsUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.UpdateAccountUseCase;
@@ -27,6 +28,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AccountControllerTest extends BaseTest {
@@ -42,6 +45,9 @@ class AccountControllerTest extends BaseTest {
 
     @Mock
     private UpdateAccountUseCase updateUseCase;
+
+    @Mock
+    private DeleteAccountUseCase deleteAccountUseCase;
 
     @InjectMocks
     private AccountController controller;
@@ -152,5 +158,28 @@ class AccountControllerTest extends BaseTest {
 
         // When / Then
         assertThrows(AccountNotFoundByIdException.class, () -> controller.updateAccount(id, req));
+    }
+
+    @Test
+    void deleteAccount_whenValidId_thenReturnsNoContent() {
+        // Given
+        Long accountId = 1L;
+
+        // When
+        ResponseEntity<ApiResponse<Void>> response = controller.deleteAccount(accountId);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        verify(deleteAccountUseCase).execute(accountId);
+    }
+
+    @Test
+    void deleteAccount_whenAccountDoesNotExist_thenThrowsAccountNotFoundException() {
+        // Given
+        Long accountId = 99L;
+        doThrow(new AccountNotFoundByIdException(accountId)).when(deleteAccountUseCase).execute(accountId);
+
+        // When / Then
+        assertThrows(AccountNotFoundByIdException.class, () -> controller.deleteAccount(accountId));
     }
 }
