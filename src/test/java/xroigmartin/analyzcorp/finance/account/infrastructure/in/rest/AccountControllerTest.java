@@ -31,7 +31,7 @@ import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNameAlread
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
 import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.CreateAccountDTO;
-import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.UpdateAccountRequestDTO;
+import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.UpdateAccountDTO;
 import xroigmartin.analyzcorp.finance.account.infrastructure.in.utils.AccountControllerAdvice;
 
 @WebMvcTest(AccountController.class)
@@ -146,7 +146,7 @@ class AccountControllerTest extends BaseTest {
     void updateAccount_whenValid_returnsUpdated() throws Exception {
         Long id = faker.number().randomNumber();
         String name = faker.name().firstName();
-        UpdateAccountRequestDTO request = new UpdateAccountRequestDTO(name);
+        UpdateAccountDTO request = new UpdateAccountDTO(name);
         Account updated = new Account(id, name);
 
         given(updateAccountUseCase.execute(new Account(id, name))).willReturn(updated);
@@ -165,7 +165,7 @@ class AccountControllerTest extends BaseTest {
     void updateAccount_whenNameConflict_returns409() throws Exception {
         Long id = faker.number().randomNumber();
         String name = faker.name().firstName();
-        UpdateAccountRequestDTO request = new UpdateAccountRequestDTO(name);
+        UpdateAccountDTO request = new UpdateAccountDTO(name);
         String message = String.format("Account name already exists: %s", name);;
 
         given(updateAccountUseCase.execute(any())).willThrow(new AccountNameAlreadyExistsException(name));
@@ -184,7 +184,7 @@ class AccountControllerTest extends BaseTest {
     void updateAccount_whenNotFound_returns404() throws Exception {
         Long id = faker.number().randomNumber();
         String name = faker.name().firstName();
-        UpdateAccountRequestDTO request = new UpdateAccountRequestDTO(name);
+        UpdateAccountDTO request = new UpdateAccountDTO(name);
         String message = String.format("Account with id %d not found", id);
 
         given(updateAccountUseCase.execute(any())).willThrow(new AccountNotFoundByIdException(id));

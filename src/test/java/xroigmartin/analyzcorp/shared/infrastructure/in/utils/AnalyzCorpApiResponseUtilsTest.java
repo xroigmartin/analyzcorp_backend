@@ -2,14 +2,14 @@ package xroigmartin.analyzcorp.shared.infrastructure.in.utils;
 
 import org.junit.jupiter.api.Test;
 import shared.domain.BaseTest;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.ApiError;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.ApiResponse;
+import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiError;
+import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiResponse;
 
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ApiResponseUtilsTest extends BaseTest {
+class AnalyzCorpApiResponseUtilsTest extends BaseTest {
 
     @Test
     void generateApiResponse_withDataAndNoError_shouldPopulateDataAndTimestamp() {
@@ -17,7 +17,7 @@ class ApiResponseUtilsTest extends BaseTest {
         String payload = "payload-data";
 
         // When
-        ApiResponse<String> result = ApiResponseUtils.generateApiResponse(payload, null);
+        AnalyzCorpApiResponse<String> result = ApiResponseUtils.generateApiResponse(payload, null);
 
         // Then
         assertThat(result.getData()).isEqualTo(payload);
@@ -31,10 +31,10 @@ class ApiResponseUtilsTest extends BaseTest {
     @Test
     void generateApiResponse_withErrorAndNoData_shouldPopulateErrorAndTimestamp() {
         // Given
-        ApiError error = new ApiError("ERR_CODE", "Something went wrong");
+        AnalyzCorpApiError error = new AnalyzCorpApiError("ERR_CODE", "Something went wrong");
 
         // When
-        ApiResponse<Void> result = ApiResponseUtils.generateApiResponse(null, error);
+        AnalyzCorpApiResponse<Void> result = ApiResponseUtils.generateApiResponse(null, error);
 
         // Then
         assertThat(result.getData()).isNull();
@@ -50,12 +50,12 @@ class ApiResponseUtilsTest extends BaseTest {
     @Test
     void generateApiResponse_multipleInvocations_shouldCreateDistinctTimestamps() throws InterruptedException {
         // Given
-        ApiError error = new ApiError("ERR", "Msg");
+        AnalyzCorpApiError error = new AnalyzCorpApiError("ERR", "Msg");
 
         // When
-        ApiResponse<String> first = ApiResponseUtils.generateApiResponse("x", error);
+        AnalyzCorpApiResponse<String> first = ApiResponseUtils.generateApiResponse("x", error);
         Thread.sleep(1);
-        ApiResponse<String> second = ApiResponseUtils.generateApiResponse("x", error);
+        AnalyzCorpApiResponse<String> second = ApiResponseUtils.generateApiResponse("x", error);
 
         // Then
         assertThat(first.getTimestamp()).isNotEqualTo(second.getTimestamp());

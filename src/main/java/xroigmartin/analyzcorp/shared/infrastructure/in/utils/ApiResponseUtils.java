@@ -1,17 +1,17 @@
 package xroigmartin.analyzcorp.shared.infrastructure.in.utils;
 
-import lombok.experimental.UtilityClass;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.ApiError;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.ApiResponse;
-
 import java.time.Instant;
+
+import lombok.experimental.UtilityClass;
+import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiError;
+import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiResponse;
 
 @UtilityClass
 public class ApiResponseUtils<T> {
 
-    public static <T> ApiResponse<T> generateApiResponse(T data, ApiError apiError) {
-        return ApiResponse.<T>builder()
-                .error(apiError)
+    public static <T> AnalyzCorpApiResponse<T> generateApiResponse(T data, AnalyzCorpApiError analyzCorpApiError) {
+        return AnalyzCorpApiResponse.<T>builder()
+                .error(analyzCorpApiError)
                 .data(data)
                 .timestamp(Instant.now().toString())
                 .build();

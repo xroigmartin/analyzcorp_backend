@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import shared.domain.BaseTest;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.ApiError;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.ApiResponse;
+import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiError;
+import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiResponse;
 
 import java.time.Instant;
 
@@ -19,7 +19,7 @@ public class ResponseEntityUtilsTest extends BaseTest {
         String timestamp = Instant.now().toString();
         String data = faker.name().fullName();
         // Given
-        ApiResponse<String> apiResponse = new ApiResponse<>(
+        AnalyzCorpApiResponse<String> analyzCorpApiResponse = new AnalyzCorpApiResponse<>(
                 data,
                 null,
                 timestamp
@@ -27,13 +27,13 @@ public class ResponseEntityUtilsTest extends BaseTest {
         HttpStatus status = HttpStatus.CREATED;
 
         // When
-        ResponseEntity<ApiResponse<String>> response =
-                ResponseEntityUtils.generateResponseEntity(apiResponse, status);
+        ResponseEntity<AnalyzCorpApiResponse<String>> response =
+                ResponseEntityUtils.generateResponseEntity(analyzCorpApiResponse, status);
 
         // Then
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(status);
-        assertThat(response.getBody()).isSameAs(apiResponse);
+        assertThat(response.getBody()).isSameAs(analyzCorpApiResponse);
         assertThat(response.getBody().getData()).isEqualTo(data);
         assertThat(response.getBody().getError()).isNull();
         assertThat(response.getBody().getTimestamp()).isEqualTo(timestamp);
@@ -43,8 +43,8 @@ public class ResponseEntityUtilsTest extends BaseTest {
     void generateSuccessfulResponse_withErrorResponse_shouldIncludeErrorInBody() {
         // Given
         String timestamp = Instant.now().toString();
-        ApiError error = new ApiError("ERROR_CODE", "Error occurred");
-        ApiResponse<Void> apiResponse = new ApiResponse<>(
+        AnalyzCorpApiError error = new AnalyzCorpApiError("ERROR_CODE", "Error occurred");
+        AnalyzCorpApiResponse<Void> analyzCorpApiResponse = new AnalyzCorpApiResponse<>(
                 null,
                 error,
                 timestamp
@@ -52,8 +52,8 @@ public class ResponseEntityUtilsTest extends BaseTest {
         HttpStatus status = HttpStatus.BAD_REQUEST;
 
         // When
-        ResponseEntity<ApiResponse<Void>> response =
-                ResponseEntityUtils.generateResponseEntity(apiResponse, status);
+        ResponseEntity<AnalyzCorpApiResponse<Void>> response =
+                ResponseEntityUtils.generateResponseEntity(analyzCorpApiResponse, status);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(status);
