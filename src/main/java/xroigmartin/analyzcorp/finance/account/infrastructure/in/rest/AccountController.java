@@ -32,8 +32,8 @@ import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.CreateAccoun
 import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.UpdateAccountDTO;
 import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.open_api_schemas.AccountListResponse;
 import xroigmartin.analyzcorp.finance.account.infrastructure.in.dto.open_api_schemas.AccountResponse;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiResponse;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.open_api_schema.EmptyResponse;
+import xroigmartin.analyzcorp.shared_kernel.infrastructure.in.dto.AnalyzCorpApiResponse;
+import xroigmartin.analyzcorp.shared_kernel.infrastructure.in.dto.open_api_schema.EmptyResponse;
 
 @RestController
 @RequestMapping("/api/accounts")

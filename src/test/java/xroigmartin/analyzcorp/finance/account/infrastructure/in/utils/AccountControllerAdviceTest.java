@@ -5,8 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import shared.domain.BaseTest;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiError;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiResponse;
+import xroigmartin.analyzcorp.shared_kernel.infrastructure.in.dto.AnalyzCorpApiError;
+import xroigmartin.analyzcorp.shared_kernel.infrastructure.in.dto.AnalyzCorpApiResponse;
 
 import java.util.regex.Pattern;
 

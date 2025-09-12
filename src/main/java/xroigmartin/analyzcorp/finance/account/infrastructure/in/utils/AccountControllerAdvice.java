@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNameAlreadyExistsException;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiError;
-import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiResponse;
+import xroigmartin.analyzcorp.shared_kernel.infrastructure.in.dto.AnalyzCorpApiError;
+import xroigmartin.analyzcorp.shared_kernel.infrastructure.in.dto.AnalyzCorpApiResponse;
 
 @RestControllerAdvice
 @Slf4j

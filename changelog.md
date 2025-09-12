@@ -6,25 +6,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.2.0] - 2025-09-07
+## [Unreleased]
 ### Added
-- RBAC core schema:
-    - `user_status` catalog with seeds and uppercase code check.
+- **RBAC core schema (PostgreSQL 17)**:
+    - `user_status` catalog with seeds and uppercase `code` check.
     - `app_user` (BIGINT PK + `public_id` UUID), auditing FKs (DEFERRABLE), soft delete, flags (`is_service`, `can_login`, `is_protected`), `version`.
     - `role`, `permission` with immutable uppercase `code`, i18n keys, auditing, `version`.
-    - Relations `user_role`, `role_permission` with assigned/granted metadata.
+    - Relations `user_role`, `role_permission` with `assigned_by/at` and `granted_by/at`.
     - View `v_user_effective_permissions`.
-    - Guard trigger to prevent deleting protected users (override via `SET LOCAL app.allow_protected_delete='on'`).
+    - Guard trigger preventing deletion of protected users (override via `SET LOCAL app.allow_protected_delete='on'`).
     - `fn_touch_updated_at`, immutability triggers for `code`, username format check.
     - Extra indexes for N:M and `has_permission()` helper.
     - Seeds: roles, permissions, and two protected service accounts with fixed `public_id` and randomized username/password.
+- **RBAC domain module (pure, framework-free)**:
+    - Entities: `User`, `Role`, `Permission`, `UserRole`, `RolePermission`; enum `UserStatus`; VO `Version`.
+    - Value Objects: `UserId`, `UserPublicId`, `Username`, `Email`, `RoleCode`, `PermissionCode` (normalization & validation).
+    - Ports: `UserRepository`, `RoleRepository`, `PermissionRepository`, `UserRoleRepository`, `RolePermissionRepository`, `UserPermissionsQuery`.
+    - Domain errors: `DomainException`, `InvariantViolation`, `UniqueConflict`, `UserNotFound`, `RoleNotFound`, `PermissionNotFound`.
+- **Documentation**: JavaDoc for model, VOs, ports, errors.
+- **Unit tests** VO normalization/validation and domain rules (login allowed, protected deletion, optimistic version, audit timestamps).
 
 ### Security
-- Protected service accounts cannot be deleted unless an explicit transactional override is set.
-- Login disabled by default for service accounts (`can_login=false`).
+- DB trigger blocks deletion of protected users unless an explicit transactional override is set.
+- Domain guard mirrors DB rule: `User.requireDeletable(false)` prevents deletions without override.
+- Service accounts seeded with `can_login=false` by default.
 
 ### Migration
-- Apply Flyway migrations `V00.02.01` … `V00.02.15` on PostgreSQL 17.
+- Apply Flyway migrations **V00.02.01 … V00.02.15** (RBAC schema baseline) on PostgreSQL 17.
+- No new migrations beyond the RBAC schema baseline at this stage.
 
 ---
 
