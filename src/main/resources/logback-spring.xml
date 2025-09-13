@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="30 seconds" debug="false">
 
-    <!-- Spring props / defaults -->
+    <!-- ========== Spring props / defaults ========== -->
     <springProperty scope="context" name="APP_NAME"     source="spring.application.name" defaultValue="analyzcorp-backend"/>
     <springProperty scope="context" name="ENV"          source="ENV"                      defaultValue="dev"/>
     <springProperty scope="context" name="VERSION"      source="SERVICE_VERSION"          defaultValue="0.1.0"/>
@@ -20,15 +20,13 @@
     <property name="SERVICE_VERSION" value="${VERSION}"/>
     <property name="ENV"             value="${ENV}"/>
 
-    <!-- ========= BASE: SYSTEM (console) ========= -->
+    <!-- ========== COMMON JSON PROVIDERS (a reutilizar) ========== -->
     <appender name="SYSTEM_JSON_BASE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
             <charset>UTF-8</charset>
             <providers>
                 <!-- Timestamp -->
-                <timestamp>
-                    <fieldName>@timestamp</fieldName>
-                </timestamp>
+                <timestamp><fieldName>@timestamp</fieldName></timestamp>
 
                 <!-- log.* -->
                 <logLevel><fieldName>log.level</fieldName></logLevel>
@@ -108,7 +106,7 @@
                 </nestedField>
             </providers>
 
-            <!-- MASKING GLOBAL -->
+            <!-- MASKING (8.1): patterns + mask -->
             <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
                 <patterns>
                     <!-- Email -->
@@ -117,15 +115,15 @@
                     <pattern>(?i)\bbearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+(?:\.[A-Za-z0-9\-_]+)?\b</pattern>
                     <!-- Secrets (apiKey/secret/token/password) -->
                     <pattern>(?i)\b(api[_-]?key|secret|token|password)\b\s*[:=]\s*[A-Za-z0-9\-._~/+=]{6,}</pattern>
-                    <!-- Generic IBAN -->
+                    <!-- IBAN -->
                     <pattern>\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b</pattern>
                     <!-- Cards -->
-                    <pattern>\b4\d{12}(\d{3})?\b</pattern>               <!-- VISA -->
-                    <pattern>\b5[1-5]\d{14}\b</pattern>                  <!-- MasterCard -->
-                    <pattern>\b3[47]\d{13}\b</pattern>                   <!-- AMEX -->
-                    <pattern>\b3(?:0[0-5]|[68]\d)\d{11}\b</pattern>      <!-- Diners -->
-                    <pattern>\b6(?:011|5\d{2})\d{12}\b</pattern>         <!-- Discover -->
-                    <pattern>\b(?:2131|1800|35\d{3})\d{11}\b</pattern>   <!-- JCB -->
+                    <pattern>\b4\d{12}(\d{3})?\b</pattern>
+                    <pattern>\b5[1-5]\d{14}\b</pattern>
+                    <pattern>\b3[47]\d{13}\b</pattern>
+                    <pattern>\b3(?:0[0-5]|[68]\d)\d{11}\b</pattern>
+                    <pattern>\b6(?:011|5\d{2})\d{12}\b</pattern>
+                    <pattern>\b(?:2131|1800|35\d{3})\d{11}\b</pattern>
                     <!-- Telephone (E.164 general) -->
                     <pattern>\+[1-9]\d{1,14}\b</pattern>
                 </patterns>
@@ -133,7 +131,6 @@
             </jsonGeneratorDecorator>
         </encoder>
 
-        <!-- Exclude BUSINESS/SECURITY for SYSTEM -->
         <filter class="ch.qos.logback.classic.filter.MarkerFilter">
             <marker>BUSINESS</marker><onMatch>DENY</onMatch><onMismatch>NEUTRAL</onMismatch>
         </filter>
@@ -145,33 +142,25 @@
         </filter>
     </appender>
 
-    <!-- ========= BASE: BUSINESS (console) ========= -->
     <appender name="BUSINESS_JSON_BASE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
             <charset>UTF-8</charset>
             <providers>
-                <!-- Timestamp -->
                 <timestamp><fieldName>@timestamp</fieldName></timestamp>
-
-                <!-- log.* -->
                 <logLevel><fieldName>log.level</fieldName></logLevel>
                 <loggerName><fieldName>log.logger</fieldName></loggerName>
                 <threadName><fieldName>log.thread</fieldName></threadName>
 
-                <!-- service.*, env -->
                 <globalCustomFields>
                     <customFields>{"service":{"name":"${SERVICE_NAME}","version":"${SERVICE_VERSION}"},"env":"${ENV}"}</customFields>
                 </globalCustomFields>
 
-                <!-- event.category = business -->
                 <globalCustomFields>
                     <customFields>{"event":{"category":"business"}}</customFields>
                 </globalCustomFields>
 
-                <!-- message -->
                 <message><fieldName>message</fieldName></message>
 
-                <!-- trace.* -->
                 <nestedField>
                     <fieldName>trace</fieldName>
                     <providers>
@@ -180,7 +169,6 @@
                     </providers>
                 </nestedField>
 
-                <!-- actor.* -->
                 <nestedField>
                     <fieldName>actor</fieldName>
                     <providers>
@@ -189,7 +177,6 @@
                     </providers>
                 </nestedField>
 
-                <!-- entity.* -->
                 <nestedField>
                     <fieldName>entity</fieldName>
                     <providers>
@@ -198,7 +185,6 @@
                     </providers>
                 </nestedField>
 
-                <!-- target.* -->
                 <nestedField>
                     <fieldName>target</fieldName>
                     <providers>
@@ -206,11 +192,9 @@
                     </providers>
                 </nestedField>
 
-                <!-- outcome, reason -->
                 <mdcEntry><mdcKey>outcome</mdcKey><fieldName>outcome</fieldName></mdcEntry>
                 <mdcEntry><mdcKey>reason</mdcKey><fieldName>reason</fieldName></mdcEntry>
 
-                <!-- exception.* -->
                 <nestedField>
                     <fieldName>exception</fieldName>
                     <providers>
@@ -220,7 +204,6 @@
                     </providers>
                 </nestedField>
 
-                <!-- http.* -->
                 <nestedField>
                     <fieldName>http</fieldName>
                     <providers>
@@ -231,7 +214,6 @@
                 </nestedField>
             </providers>
 
-            <!-- MASKING (mismo set) -->
             <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
                 <patterns>
                     <pattern>(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b</pattern>
@@ -261,7 +243,7 @@
         </filter>
     </appender>
 
-    <!-- ========= ASYNC WRAPPERS ========= -->
+    <!-- ========== ASYNC WRAPPERS ========== -->
     <appender name="ASYNC_SYSTEM" class="ch.qos.logback.classic.AsyncAppender">
         <queueSize>8192</queueSize>
         <discardingThreshold>0</discardingThreshold>
