@@ -5,11 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
-### Added
-- Pending: use cases for budgets and transactions.
-- Pending: integration with advanced auditing.
-
 ---
+
+## [0.3.0] - 2025-09-23
+### Added
+- Config logging system for application
 
 ## [0.2.0] - 2025-09-06
 ### Added

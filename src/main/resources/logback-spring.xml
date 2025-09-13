@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds" debug="false">
+
+    <!-- ========== Spring props / defaults ========== -->
+    <springProperty scope="context" name="APP_NAME"     source="spring.application.name" defaultValue="analyzcorp-backend"/>
+    <springProperty scope="context" name="ENV"          source="ENV"                      defaultValue="dev"/>
+    <springProperty scope="context" name="VERSION"      source="SERVICE_VERSION"          defaultValue="0.1.0"/>
+
+    <springProperty scope="context" name="SYSTEM_LEVEL"   source="logging.level.system"    defaultValue="INFO"/>
+    <springProperty scope="context" name="BUSINESS_LEVEL" source="logging.level.business"  defaultValue="INFO"/>
+
+    <springProperty scope="context" name="LOG_DIR"        source="logging.file.path"       defaultValue="logs"/>
+    <springProperty scope="context" name="SYS_FILE_NAME"  source="logging.file.system"     defaultValue="system.log"/>
+    <springProperty scope="context" name="BIZ_FILE_NAME"  source="logging.file.business"   defaultValue="business.log"/>
+    <springProperty scope="context" name="MAX_FILE_SIZE"  source="logging.file.max-size"   defaultValue="50MB"/>
+    <springProperty scope="context" name="MAX_HISTORY"    source="logging.file.max-history"defaultValue="14"/>
+    <springProperty scope="context" name="TOTAL_SIZE_CAP" source="logging.file.total-cap"  defaultValue="2GB"/>
+
+    <property name="SERVICE_NAME"    value="${APP_NAME}"/>
+    <property name="SERVICE_VERSION" value="${VERSION}"/>
+    <property name="ENV"             value="${ENV}"/>
+
+    <!-- ========== ENCODER JSON (providers + MASKING GLOBAL) ========== -->
+    <appender name="SYSTEM_JSON_BASE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <charset>UTF-8</charset>
+            <providers>
+                <timestamp>
+                    <fieldName>@timestamp</fieldName>
+                </timestamp>
+                <pattern>
+                    <pattern>
+                        {
+                        "log": { "level": "%level", "logger": "%logger", "thread": "%thread" },
+                        "service": { "name": "${SERVICE_NAME}", "version": "${SERVICE_VERSION}" },
+                        "env": "${ENV}",
+                        "event": { "category": "system" },
+                        "message": "%msg",
+                        "trace": { "correlation_id": "%mdc{trace.correlation_id}", "request_id": "%mdc{request.id}" },
+                        "actor": { "name": "%mdc{actor.name}", "id": "%mdc{actor.id}" },
+                        "entity": { "type": "%mdc{entity.type}", "id": "%mdc{entity.id}" },
+                        "target": { "id": "%mdc{target.id}" },
+                        "outcome": "%mdc{outcome}",
+                        "reason": "%mdc{reason}",
+                        "exception": {
+                        "type": "%ex{0}",
+                        "message": "%replace(%mdc{exception.message}){'\\R',' '}",
+                        "stacktrace": "%ex"
+                        },
+                        "http": { "method": "%mdc{http.method}", "status": "%mdc{http.status}", "url": "%mdc{http.url}" }
+                        }
+                    </pattern>
+                </pattern>
+                <mdc/>
+            </providers>
+
+            <!-- MASKING GLOBAL -->
+            <jsonFactoryDecorator class="net.logstash.logback.decorate.MaskingJsonFactoryDecorator">
+                <maskPatterns>
+                    <!-- Email -->
+                    <pattern>([a-zA-Z0-9_.+-]+)@([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)</pattern>
+                    <!-- Bearer / JWT (aprox) -->
+                    <pattern>(?i)bearer\s+[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*</pattern>
+                    <!-- Secrets (apiKey/secret/token/password) -->
+                    <pattern>(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*([A-Za-z0-9\-._~+/]+=*)</pattern>
+                    <!-- Generic IBAN -->
+                    <pattern>\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b</pattern>
+                    <!-- Cards  -->
+                    <pattern>\b4\d{12}(\d{3})?\b</pattern>               <!-- VISA -->
+                    <pattern>\b5[1-5]\d{14}\b</pattern>                  <!-- MasterCard -->
+                    <pattern>\b3[47]\d{13}\b</pattern>                   <!-- AMEX -->
+                    <pattern>\b3(?:0[0-5]|[68]\d)\d{11}\b</pattern>      <!-- Diners -->
+                    <pattern>\b6(?:011|5\d{2})\d{12}\b</pattern>         <!-- Discover -->
+                    <pattern>\b(?:2131|1800|35\d{3})\d{11}\b</pattern>   <!-- JCB -->
+                    <!-- Telephone (E.164 general) -->
+                    <pattern>\+?[1-9]\d{1,14}\b</pattern>
+                </maskPatterns>
+                <maskValue>***</maskValue>
+            </jsonFactoryDecorator>
+        </encoder>
+
+        <!-- Exclude BUSINESS/SECURITY for SYSTEM -->
+        <filter class="ch.qos.logback.classic.filter.MarkerFilter">
+            <marker>BUSINESS</marker><onMatch>DENY</onMatch><onMismatch>NEUTRAL</onMismatch>
+        </filter>
+        <filter class="ch.qos.logback.classic.filter.MarkerFilter">
+            <marker>SECURITY</marker><onMatch>DENY</onMatch><onMismatch>NEUTRAL</onMismatch>
+        </filter>
+
+        <!-- Minimum level for SYSTEM -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${SYSTEM_LEVEL}</level>
+        </filter>
+    </appender>
+
+    <appender name="BUSINESS_JSON_BASE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <charset>UTF-8</charset>
+            <providers>
+                <timestamp><fieldName>@timestamp</fieldName></timestamp>
+                <pattern>
+                    <pattern>
+                        {
+                        "log": { "level": "%level", "logger": "%logger" },
+                        "service": { "name": "${SERVICE_NAME}", "version": "${SERVICE_VERSION}" },
+                        "env": "${ENV}",
+                        "event": { "category": "%mdc{event.category:-business}", "action": "%mdc{event.action}" },
+                        "message": "%msg",
+                        "trace": { "correlation_id": "%mdc{trace.correlation_id}", "request_id": "%mdc{request.id}" },
+                        "actor": { "name": "%mdc{actor.name}", "id": "%mdc{actor.id}" },
+                        "entity": { "type": "%mdc{entity.type}", "id": "%mdc{entity.id}" },
+                        "target": { "id": "%mdc{target.id}" },
+                        "outcome": "%mdc{outcome}",
+                        "reason": "%mdc{reason}"
+                        }
+                    </pattern>
+                </pattern>
+                <mdc/>
+            </providers>
+
+            <!-- MASKING GLOBAL some of BUSINESS -->
+            <jsonFactoryDecorator class="net.logstash.logback.decorate.MaskingJsonFactoryDecorator">
+                <maskPatterns>
+                    <pattern>([a-zA-Z0-9_.+-]+)@([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)</pattern>
+                    <pattern>(?i)bearer\s+[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*</pattern>
+                    <pattern>(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*([A-Za-z0-9\-._~+/]+=*)</pattern>
+                    <pattern>\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b</pattern>
+                    <pattern>\b4\d{12}(\d{3})?\b</pattern>
+                    <pattern>\b5[1-5]\d{14}\b</pattern>
+                    <pattern>\b3[47]\d{13}\b</pattern>
+                    <pattern>\b3(?:0[0-5]|[68]\d)\d{11}\b</pattern>
+                    <pattern>\b6(?:011|5\d{2})\d{12}\b</pattern>
+                    <pattern>\b(?:2131|1800|35\d{3})\d{11}\b</pattern>
+                    <pattern>\+?[1-9]\d{1,14}\b</pattern>
+                </maskPatterns>
+                <maskValue>***</maskValue>
+            </jsonFactoryDecorator>
+        </encoder>
+
+        <!-- Only accept BUSINESS/SECURITY -->
+        <filter class="ch.qos.logback.classic.filter.MarkerFilter">
+            <marker>BUSINESS</marker><onMatch>ACCEPT</onMatch><onMismatch>NEUTRAL</onMismatch>
+        </filter>
+        <filter class="ch.qos.logback.classic.filter.MarkerFilter">
+            <marker>SECURITY</marker><onMatch>ACCEPT</onMatch><onMismatch>DENY</onMismatch>
+        </filter>
+
+        <!-- Same minimum level for BUSINESS -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${BUSINESS_LEVEL}</level>
+        </filter>
+    </appender>
+
+    <!-- ========== ASYNC WRAPPERS (non-blocking, backpressure safe) ========== -->
+    <appender name="ASYNC_SYSTEM" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>8192</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <maxFlushTime>1000</maxFlushTime>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="SYSTEM_JSON"/>
+    </appender>
+
+    <appender name="ASYNC_BUSINESS" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>8192</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <maxFlushTime>1000</maxFlushTime>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="BUSINESS_JSON"/>
+    </appender>
+
+    <!-- ========== TO: for default CONSOLE ('console' profile ) ========== -->
+    <springProfile name="console, default">
+        <!-- Alias a las bases de encoder console -->
+        <appender name="SYSTEM_JSON"   class="ch.qos.logback.core.rewrite.RewritingAppender">
+            <appender-ref ref="SYSTEM_JSON_BASE"/>
+        </appender>
+        <appender name="BUSINESS_JSON" class="ch.qos.logback.core.rewrite.RewritingAppender">
+            <appender-ref ref="BUSINESS_JSON_BASE"/>
+        </appender>
+    </springProfile>
+
+    <!-- ========== TO: FILE ('file' profile) with ratation about size/time ========== -->
+    <springProfile name="file">
+        <appender name="SYSTEM_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_DIR}/${SYS_FILE_NAME}</file>
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <charset>UTF-8</charset>
+                <!-- Same providers + masking for the SYSTEM_JSON_BASE -->
+                <providers>
+                    <timestamp><fieldName>@timestamp</fieldName></timestamp>
+                    <pattern>
+                        <pattern>
+                            {
+                            "log": { "level": "%level", "logger": "%logger", "thread": "%thread" },
+                            "service": { "name": "${SERVICE_NAME}", "version": "${SERVICE_VERSION}" },
+                            "env": "${ENV}",
+                            "event": { "category": "system" },
+                            "message": "%msg",
+                            "trace": { "correlation_id": "%mdc{trace.correlation_id}", "request_id": "%mdc{request.id}" },
+                            "actor": { "name": "%mdc{actor.name}", "id": "%mdc{actor.id}" },
+                            "entity": { "type": "%mdc{entity.type}", "id": "%mdc{entity.id}" },
+                            "target": { "id": "%mdc{target.id}" },
+                            "outcome": "%mdc{outcome}",
+                            "reason": "%mdc{reason}",
+                            "exception": { "type": "%ex{0}", "message": "%replace(%mdc{exception.message}){'\\R',' '}", "stacktrace": "%ex" },
+                            "http": { "method": "%mdc{http.method}", "status": "%mdc{http.status}", "url": "%mdc{http.url}" }
+                            }
+                        </pattern>
+                    </pattern>
+                    <mdc/>
+                </providers>
+                <jsonFactoryDecorator class="net.logstash.logback.decorate.MaskingJsonFactoryDecorator">
+                    <maskPatterns>
+                        <pattern>([a-zA-Z0-9_.+-]+)@([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)</pattern>
+                        <pattern>(?i)bearer\s+[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*</pattern>
+                        <pattern>(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*([A-Za-z0-9\-._~+/]+=*)</pattern>
+                        <pattern>\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b</pattern>
+                        <pattern>\b4\d{12}(\d{3})?\b</pattern>
+                        <pattern>\b5[1-5]\d{14}\b</pattern>
+                        <pattern>\b3[47]\d{13}\b</pattern>
+                        <pattern>\b3(?:0[0-5]|[68]\d)\d{11}\b</pattern>
+                        <pattern>\b6(?:011|5\d{2})\d{12}\b</pattern>
+                        <pattern>\b(?:2131|1800|35\d{3})\d{11}\b</pattern>
+                        <pattern>\+?[1-9]\d{1,14}\b</pattern>
+                    </maskPatterns>
+                    <maskValue>***</maskValue>
+                </jsonFactoryDecorator>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_DIR}/system.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+                <maxHistory>${MAX_HISTORY}</maxHistory>
+                <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+                <cleanHistoryOnStart>true</cleanHistoryOnStart>
+            </rollingPolicy>
+            <filter class="ch.qos.logback.classic.filter.MarkerFilter">
+                <marker>BUSINESS</marker><onMatch>DENY</onMatch><onMismatch>NEUTRAL</onMismatch>
+            </filter>
+            <filter class="ch.qos.logback.classic.filter.MarkerFilter">
+                <marker>SECURITY</marker><onMatch>DENY</onMatch><onMismatch>NEUTRAL</onMismatch>
+            </filter>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>${SYSTEM_LEVEL}</level>
+            </filter>
+        </appender>
+
+        <appender name="BUSINESS_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_DIR}/${BIZ_FILE_NAME}</file>
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <charset>UTF-8</charset>
+                <!-- Same providers + masking for the BUSINESS_JSON_BASE -->
+                <providers>
+                    <timestamp><fieldName>@timestamp</fieldName></timestamp>
+                    <pattern>
+                        <pattern>
+                            {
+                            "log": { "level": "%level", "logger": "%logger" },
+                            "service": { "name": "${SERVICE_NAME}", "version": "${SERVICE_VERSION}" },
+                            "env": "${ENV}",
+                            "event": { "category": "%mdc{event.category:-business}", "action": "%mdc{event.action}" },
+                            "message": "%msg",
+                            "trace": { "correlation_id": "%mdc{trace.correlation_id}", "request_id": "%mdc{request.id}" },
+                            "actor": { "name": "%mdc{actor.name}", "id": "%mdc{actor.id}" },
+                            "entity": { "type": "%mdc{entity.type}", "id": "%mdc{entity.id}" },
+                            "target": { "id": "%mdc{target.id}" },
+                            "outcome": "%mdc{outcome}",
+                            "reason": "%mdc{reason}"
+                            }
+                        </pattern>
+                    </pattern>
+                    <mdc/>
+                </providers>
+                <jsonFactoryDecorator class="net.logstash.logback.decorate.MaskingJsonFactoryDecorator">
+                    <maskPatterns>
+                        <pattern>([a-zA-Z0-9_.+-]+)@([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)</pattern>
+                        <pattern>(?i)bearer\s+[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*</pattern>
+                        <pattern>(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*([A-Za-z0-9\-._~+/]+=*)</pattern>
+                        <pattern>\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b</pattern>
+                        <pattern>\b4\d{12}(\d{3})?\b</pattern>
+                        <pattern>\b5[1-5]\d{14}\b</pattern>
+                        <pattern>\b3[47]\d{13}\b</pattern>
+                        <pattern>\b3(?:0[0-5]|[68]\d)\d{11}\b</pattern>
+                        <pattern>\b6(?:011|5\d{2})\d{12}\b</pattern>
+                        <pattern>\b(?:2131|1800|35\d{3})\d{11}\b</pattern>
+                        <pattern>\+?[1-9]\d{1,14}\b</pattern>
+                    </maskPatterns>
+                    <maskValue>***</maskValue>
+                </jsonFactoryDecorator>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_DIR}/business.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+                <maxHistory>${MAX_HISTORY}</maxHistory>
+                <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+                <cleanHistoryOnStart>true</cleanHistoryOnStart>
+            </rollingPolicy>
+            <filter class="ch.qos.logback.classic.filter.MarkerFilter">
+                <marker>BUSINESS</marker><onMatch>ACCEPT</onMatch><onMismatch>NEUTRAL</onMismatch>
+            </filter>
+            <filter class="ch.qos.logback.classic.filter.MarkerFilter">
+                <marker>SECURITY</marker><onMatch>ACCEPT</onMatch><onMismatch>DENY</onMismatch>
+            </filter>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>${BUSINESS_LEVEL}</level>
+            </filter>
+        </appender>
+    </springProfile>
+
+    <!-- Root → SYSTEM -->
+    <root level="${SYSTEM_LEVEL}">
+        <appender-ref ref="ASYNC_SYSTEM"/>
+    </root>
+
+    <!-- Logger dedicated for the channel BUSINESS/SECURITY -->
+    <logger name="xroigmartin.analyzcorp.audit.Business" level="${BUSINESS_LEVEL}" additivity="false">
+        <appender-ref ref="ASYNC_BUSINESS"/>
+    </logger>
+</configuration>
