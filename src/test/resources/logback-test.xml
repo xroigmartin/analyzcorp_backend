@@ -1,26 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <!-- Console appender with JSON encoder and global masking for tests -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
             <providers>
-                <!-- Proper providers so the masking decorator can intercept values -->
                 <timestamp>
                     <fieldName>@timestamp</fieldName>
                 </timestamp>
                 <message>
                     <fieldName>message</fieldName>
                 </message>
+                <!-- <mdc/><logLevel/><loggerName/> -->
             </providers>
 
-            <!-- Global masking decorator (applies to values written via JSON generator) -->
-            <jsonFactoryDecorator class="net.logstash.logback.decorate.MaskingJsonFactoryDecorator">
-                <maskPatterns>
-                    <pattern>([a-zA-Z0-9_.+-]+)@([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)</pattern>
+            <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
+                <defaultMask>***</defaultMask>
+                <paths>authorization,jwt,token,password,email,iban</paths>
+                <pathMask>
+                    <paths>creditCard,cardNumber</paths>
+                    <mask>####-####-####-####</mask>
+                </pathMask>
+                <!--
+                <valueMasker class="net.logstash.logback.mask.RegexValueMasker">
                     <pattern>(?i)bearer\s+[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*</pattern>
-                </maskPatterns>
-                <maskValue>***</maskValue>
-            </jsonFactoryDecorator>
+                    <mask>***</mask>
+                </valueMasker>
+                -->
+            </jsonGeneratorDecorator>
         </encoder>
     </appender>
 

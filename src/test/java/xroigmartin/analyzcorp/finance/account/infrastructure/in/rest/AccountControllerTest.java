@@ -17,9 +17,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import shared.domain.BaseTest;
 import xroigmartin.analyzcorp.finance.account.application.use_case.CreateAccountUseCase;
@@ -27,6 +27,7 @@ import xroigmartin.analyzcorp.finance.account.application.use_case.DeleteAccount
 import xroigmartin.analyzcorp.finance.account.application.use_case.GetAccountByIdUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.GetAllAccountsUseCase;
 import xroigmartin.analyzcorp.finance.account.application.use_case.UpdateAccountUseCase;
+import xroigmartin.analyzcorp.finance.account.domain.events.AccountAction;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNameAlreadyExistsException;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
@@ -41,19 +42,19 @@ class AccountControllerTest extends BaseTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private GetAllAccountsUseCase getAllAccountsUseCase;
 
-    @MockBean
+    @MockitoBean
     private CreateAccountUseCase createAccountUseCase;
 
-    @MockBean
+    @MockitoBean
     private GetAccountByIdUseCase getAccountByIdUseCase;
 
-    @MockBean
+    @MockitoBean
     private UpdateAccountUseCase updateAccountUseCase;
 
-    @MockBean
+    @MockitoBean
     private DeleteAccountUseCase deleteAccountUseCase;
 
     @Autowired
@@ -96,7 +97,7 @@ class AccountControllerTest extends BaseTest {
         Long id = faker.number().randomNumber();
         String message = String.format("Account with id %d not found", id);
 
-        given(getAccountByIdUseCase.execute(id)).willThrow(new AccountNotFoundByIdException(id));
+        given(getAccountByIdUseCase.execute(id)).willThrow(new AccountNotFoundByIdException(id, AccountAction.FINANCE_ACCOUNT_RETRIEVED));
 
         mockMvc.perform(get("/api/accounts/{id}", id))
                 .andExpect(status().isNotFound())
@@ -128,9 +129,9 @@ class AccountControllerTest extends BaseTest {
     void createAccount_whenNameAlreadyExists_returnsConflict() throws Exception {
         String name = faker.name().firstName();
         CreateAccountDTO dto = new CreateAccountDTO(name);
-        String message = String.format("Account name already exists: %s", name);
+        String message = "Name of account already exists";
 
-        given(createAccountUseCase.execute(any())).willThrow(new AccountNameAlreadyExistsException(name));
+        given(createAccountUseCase.execute(any())).willThrow(new AccountNameAlreadyExistsException(AccountAction.FINANCE_ACCOUNT_CREATED));
 
         mockMvc.perform(post("/api/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -166,9 +167,9 @@ class AccountControllerTest extends BaseTest {
         Long id = faker.number().randomNumber();
         String name = faker.name().firstName();
         UpdateAccountDTO request = new UpdateAccountDTO(name);
-        String message = String.format("Account name already exists: %s", name);;
+        String message = "Name of account already exists";
 
-        given(updateAccountUseCase.execute(any())).willThrow(new AccountNameAlreadyExistsException(name));
+        given(updateAccountUseCase.execute(any())).willThrow(new AccountNameAlreadyExistsException(AccountAction.FINANCE_ACCOUNT_UPDATED));
 
         mockMvc.perform(put("/api/accounts/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -187,7 +188,7 @@ class AccountControllerTest extends BaseTest {
         UpdateAccountDTO request = new UpdateAccountDTO(name);
         String message = String.format("Account with id %d not found", id);
 
-        given(updateAccountUseCase.execute(any())).willThrow(new AccountNotFoundByIdException(id));
+        given(updateAccountUseCase.execute(any())).willThrow(new AccountNotFoundByIdException(id, AccountAction.FINANCE_ACCOUNT_UPDATED));
 
         mockMvc.perform(put("/api/accounts/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -214,7 +215,7 @@ class AccountControllerTest extends BaseTest {
         Long id = faker.number().randomNumber();
         String message = String.format("Account with id %d not found", id);
 
-        doThrow(new AccountNotFoundByIdException(id)).when(deleteAccountUseCase).execute(id);
+        doThrow(new AccountNotFoundByIdException(id, AccountAction.FINANCE_ACCOUNT_DELETED)).when(deleteAccountUseCase).execute(id);
 
         mockMvc.perform(delete("/api/accounts/{id}", id))
                 .andExpect(status().isNotFound())

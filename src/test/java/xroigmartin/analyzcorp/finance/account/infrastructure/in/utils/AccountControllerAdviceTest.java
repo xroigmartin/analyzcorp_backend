@@ -1,16 +1,17 @@
 package xroigmartin.analyzcorp.finance.account.infrastructure.in.utils;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import shared.domain.BaseTest;
+import xroigmartin.analyzcorp.finance.account.domain.events.AccountAction;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiError;
 import xroigmartin.analyzcorp.shared.infrastructure.in.dto.AnalyzCorpApiResponse;
-
-import java.util.regex.Pattern;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class AccountControllerAdviceTest extends BaseTest {
 
@@ -19,7 +20,7 @@ class AccountControllerAdviceTest extends BaseTest {
     @Test
     void whenAccountNotFound_thenReturnsNotFoundResponse() {
         // Given
-        AccountNotFoundByIdException ex = new AccountNotFoundByIdException(faker.number().randomNumber());
+        AccountNotFoundByIdException ex = new AccountNotFoundByIdException(faker.number().randomNumber(), AccountAction.FINANCE_ACCOUNT_UPDATED);
 
         // When
         ResponseEntity<AnalyzCorpApiResponse<Void>> response = advice.handleNotFound(ex);

@@ -2,6 +2,7 @@ package xroigmartin.analyzcorp.finance.account.application.use_case;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import xroigmartin.analyzcorp.finance.account.domain.events.AccountAction;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountGetByIdRepository;
@@ -16,6 +17,6 @@ public class GetAccountByIdUseCase {
     public Account execute(Long id) {
         return accountGetByIdRepository
                 .findById(id)
-                .orElseThrow(() -> new AccountNotFoundByIdException(id));
+                .orElseThrow(() -> new AccountNotFoundByIdException(id, AccountAction.FINANCE_ACCOUNT_RETRIEVED));
     }
 }
