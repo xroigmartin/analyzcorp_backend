@@ -20,7 +20,7 @@ import xroigmartin.analyzcorp.shared.logging.domain.MdcSafe;
  */
 public class CorrelationIdFilter implements Filter {
     private static final int RAW_MAX_LEN = 128;
-    private static final Pattern PRINTABLE = Pattern.compile("[\\p{Print}]+");
+    private static final Pattern PRINTABLE = Pattern.compile("\\P{Cntrl}+");
 
     private final String headerName;
     private final boolean ensure;

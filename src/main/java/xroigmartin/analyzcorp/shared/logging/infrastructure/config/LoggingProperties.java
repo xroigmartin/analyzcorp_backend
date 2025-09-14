@@ -34,4 +34,13 @@ public class LoggingProperties {
      * <p>Purpose: protect against log injection / amplification and keep log events small.</p>
      */
     private int mdcMaxLen = 256;
+
+    /** Service name for log enrichment. */
+    private String serviceName = "analyzcorp-backend";
+
+    /** Service version for log enrichment. */
+    private String serviceVersion = "0.1.0";
+
+    /** Environment identifier (dev, test, prod…). */
+    private String env = "dev";
 }

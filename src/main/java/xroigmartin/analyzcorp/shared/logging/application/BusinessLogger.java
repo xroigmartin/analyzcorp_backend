@@ -1,7 +1,5 @@
 package xroigmartin.analyzcorp.shared.logging.application;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Marker;
 import xroigmartin.analyzcorp.shared.logging.domain.AuditSink;
@@ -30,19 +28,14 @@ public class BusinessLogger {
     /** Typed API (recommended). */
     public void infoSecurity(BusinessEvent event) { emit(Markers.SECURITY, event); }
 
-    /** Backward compatible ad-hoc map API (discouraged). */
-    public void infoBusiness(Map<String, Object> event) { emit(Markers.BUSINESS, event); }
-
-    /** Backward compatible ad-hoc map API (discouraged). */
-    public void infoSecurity(Map<String, Object> event) { emit(Markers.SECURITY, event); }
-
-    private void emit(Marker marker, Object event) {
+    private void emit(Marker marker, BusinessEvent event) {
         try {
-            String json = mapper.writeValueAsString(event);
-            String masked = masker.mask(json); // belt-and-suspenders; encoder-level masking also in place
-            sink.emit(marker, masked);
-        } catch (Exception ignored) {
-            // Intentionally swallow logging failures: logging must never affect the business flow.
-        }
+            var normalized = event.withCategory(
+                    marker == Markers.SECURITY ? xroigmartin.analyzcorp.shared.logging.domain.enums.EventCategory.SECURITY
+                            : xroigmartin.analyzcorp.shared.logging.domain.enums.EventCategory.BUSINESS
+            );
+            String json = mapper.writeValueAsString(normalized);
+            sink.emit(marker, masker.mask(json));
+        } catch (Exception ignored) { }
     }
 }

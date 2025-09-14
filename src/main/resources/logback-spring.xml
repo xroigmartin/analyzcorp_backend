@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="30 seconds" debug="false">
 
-    <!-- ========== Spring props / defaults ========== -->
-    <springProperty scope="context" name="APP_NAME"     source="spring.application.name" defaultValue="analyzcorp-backend"/>
-    <springProperty scope="context" name="ENV"          source="ENV"                      defaultValue="dev"/>
-    <springProperty scope="context" name="VERSION"      source="SERVICE_VERSION"          defaultValue="0.1.0"/>
-
+    <!-- Spring props -->
     <springProperty scope="context" name="SYSTEM_LEVEL"   source="logging.level.system"    defaultValue="INFO"/>
     <springProperty scope="context" name="BUSINESS_LEVEL" source="logging.level.business"  defaultValue="INFO"/>
 
@@ -20,455 +16,53 @@
     <property name="SERVICE_VERSION" value="${VERSION}"/>
     <property name="ENV"             value="${ENV}"/>
 
-    <!-- ========== COMMON JSON PROVIDERS (a reutilizar) ========== -->
+    <!-- SYSTEM -->
     <appender name="SYSTEM_JSON_BASE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <charset>UTF-8</charset>
             <providers>
-                <!-- Timestamp -->
                 <timestamp><fieldName>@timestamp</fieldName></timestamp>
-
-                <!-- log.* -->
-                <logLevel><fieldName>log.level</fieldName></logLevel>
-                <loggerName><fieldName>log.logger</fieldName></loggerName>
-                <threadName><fieldName>log.thread</fieldName></threadName>
-
-                <!-- service.*, env -->
-                <globalCustomFields>
-                    <customFields>{"service":{"name":"${SERVICE_NAME}","version":"${SERVICE_VERSION}"},"env":"${ENV}"}</customFields>
-                </globalCustomFields>
-
-                <!-- event.category = system -->
-                <globalCustomFields>
-                    <customFields>{"event":{"category":"system"}}</customFields>
-                </globalCustomFields>
-
-                <!-- message -->
-                <message><fieldName>message</fieldName></message>
-
-                <!-- trace.* -->
-                <nestedField>
-                    <fieldName>trace</fieldName>
-                    <providers>
-                        <mdcEntry><mdcKey>trace.correlation_id</mdcKey><fieldName>correlation_id</fieldName></mdcEntry>
-                        <mdcEntry><mdcKey>request.id</mdcKey><fieldName>request_id</fieldName></mdcEntry>
-                    </providers>
-                </nestedField>
-
-                <!-- actor.* -->
-                <nestedField>
-                    <fieldName>actor</fieldName>
-                    <providers>
-                        <mdcEntry><mdcKey>actor.name</mdcKey><fieldName>name</fieldName></mdcEntry>
-                        <mdcEntry><mdcKey>actor.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                    </providers>
-                </nestedField>
-
-                <!-- entity.* -->
-                <nestedField>
-                    <fieldName>entity</fieldName>
-                    <providers>
-                        <mdcEntry><mdcKey>entity.type</mdcKey><fieldName>type</fieldName></mdcEntry>
-                        <mdcEntry><mdcKey>entity.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                    </providers>
-                </nestedField>
-
-                <!-- target.* -->
-                <nestedField>
-                    <fieldName>target</fieldName>
-                    <providers>
-                        <mdcEntry><mdcKey>target.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                    </providers>
-                </nestedField>
-
-                <!-- outcome, reason -->
-                <mdcEntry><mdcKey>outcome</mdcKey><fieldName>outcome</fieldName></mdcEntry>
-                <mdcEntry><mdcKey>reason</mdcKey><fieldName>reason</fieldName></mdcEntry>
-
-                <!-- exception.* -->
-                <nestedField>
-                    <fieldName>exception</fieldName>
-                    <providers>
-                        <throwableClassName><fieldName>type</fieldName></throwableClassName>
-                        <throwableMessage><fieldName>message</fieldName></throwableMessage>
-                        <stackTrace><fieldName>stacktrace</fieldName></stackTrace>
-                    </providers>
-                </nestedField>
-
-                <!-- http.* -->
-                <nestedField>
-                    <fieldName>http</fieldName>
-                    <providers>
-                        <mdcEntry><mdcKey>http.method</mdcKey><fieldName>method</fieldName></mdcEntry>
-                        <mdcEntry><mdcKey>http.status</mdcKey><fieldName>status</fieldName></mdcEntry>
-                        <mdcEntry><mdcKey>http.url</mdcKey><fieldName>url</fieldName></mdcEntry>
-                    </providers>
-                </nestedField>
+                <logLevel/><loggerName/><threadName/>
+                <message/>
+                <mdc/>
+                <throwableClassName/><throwableMessage/><stackTrace/>
             </providers>
-
-            <!-- MASKING (8.1): patterns + mask -->
-            <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
-                <patterns>
-                    <!-- Email -->
-                    <pattern>(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b</pattern>
-                    <!-- Bearer / JWT (aprox) -->
-                    <pattern>(?i)\bbearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+(?:\.[A-Za-z0-9\-_]+)?\b</pattern>
-                    <!-- Secrets (apiKey/secret/token/password) -->
-                    <pattern>(?i)\b(api[_-]?key|secret|token|password)\b\s*[:=]\s*[A-Za-z0-9\-._~/+=]{6,}</pattern>
-                    <!-- IBAN -->
-                    <pattern>\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b</pattern>
-                    <!-- Cards -->
-                    <pattern>\b4\d{12}(\d{3})?\b</pattern>
-                    <pattern>\b5[1-5]\d{14}\b</pattern>
-                    <pattern>\b3[47]\d{13}\b</pattern>
-                    <pattern>\b3(?:0[0-5]|[68]\d)\d{11}\b</pattern>
-                    <pattern>\b6(?:011|5\d{2})\d{12}\b</pattern>
-                    <pattern>\b(?:2131|1800|35\d{3})\d{11}\b</pattern>
-                    <!-- Telephone (E.164 general) -->
-                    <pattern>\+[1-9]\d{1,14}\b</pattern>
-                </patterns>
-                <mask>***</mask>
-            </jsonGeneratorDecorator>
         </encoder>
-
-        <filter class="ch.qos.logback.classic.filter.MarkerFilter">
-            <marker>BUSINESS</marker><onMatch>DENY</onMatch><onMismatch>NEUTRAL</onMismatch>
-        </filter>
-        <filter class="ch.qos.logback.classic.filter.MarkerFilter">
-            <marker>SECURITY</marker><onMatch>DENY</onMatch><onMismatch>NEUTRAL</onMismatch>
-        </filter>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>${SYSTEM_LEVEL}</level>
-        </filter>
     </appender>
 
+    <!-- BUSINESS -->
     <appender name="BUSINESS_JSON_BASE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <charset>UTF-8</charset>
             <providers>
                 <timestamp><fieldName>@timestamp</fieldName></timestamp>
-                <logLevel><fieldName>log.level</fieldName></logLevel>
-                <loggerName><fieldName>log.logger</fieldName></loggerName>
-                <threadName><fieldName>log.thread</fieldName></threadName>
-
-                <globalCustomFields>
-                    <customFields>{"service":{"name":"${SERVICE_NAME}","version":"${SERVICE_VERSION}"},"env":"${ENV}"}</customFields>
-                </globalCustomFields>
-
-                <globalCustomFields>
-                    <customFields>{"event":{"category":"business"}}</customFields>
-                </globalCustomFields>
-
-                <message><fieldName>message</fieldName></message>
-
-                <nestedField>
-                    <fieldName>trace</fieldName>
-                    <providers>
-                        <mdcEntry><mdcKey>trace.correlation_id</mdcKey><fieldName>correlation_id</fieldName></mdcEntry>
-                        <mdcEntry><mdcKey>request.id</mdcKey><fieldName>request_id</fieldName></mdcEntry>
-                    </providers>
-                </nestedField>
-
-                <nestedField>
-                    <fieldName>actor</fieldName>
-                    <providers>
-                        <mdcEntry><mdcKey>actor.name</mdcKey><fieldName>name</fieldName></mdcEntry>
-                        <mdcEntry><mdcKey>actor.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                    </providers>
-                </nestedField>
-
-                <nestedField>
-                    <fieldName>entity</fieldName>
-                    <providers>
-                        <mdcEntry><mdcKey>entity.type</mdcKey><fieldName>type</fieldName></mdcEntry>
-                        <mdcEntry><mdcKey>entity.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                    </providers>
-                </nestedField>
-
-                <nestedField>
-                    <fieldName>target</fieldName>
-                    <providers>
-                        <mdcEntry><mdcKey>target.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                    </providers>
-                </nestedField>
-
-                <mdcEntry><mdcKey>outcome</mdcKey><fieldName>outcome</fieldName></mdcEntry>
-                <mdcEntry><mdcKey>reason</mdcKey><fieldName>reason</fieldName></mdcEntry>
-
-                <nestedField>
-                    <fieldName>exception</fieldName>
-                    <providers>
-                        <throwableClassName><fieldName>type</fieldName></throwableClassName>
-                        <throwableMessage><fieldName>message</fieldName></throwableMessage>
-                        <stackTrace><fieldName>stacktrace</fieldName></stackTrace>
-                    </providers>
-                </nestedField>
-
-                <nestedField>
-                    <fieldName>http</fieldName>
-                    <providers>
-                        <mdcEntry><mdcKey>http.method</mdcKey><fieldName>method</fieldName></mdcEntry>
-                        <mdcEntry><mdcKey>http.status</mdcKey><fieldName>status</fieldName></mdcEntry>
-                        <mdcEntry><mdcKey>http.url</mdcKey><fieldName>url</fieldName></mdcEntry>
-                    </providers>
-                </nestedField>
+                <logLevel/><loggerName/><threadName/>
+                <message/>
+                <mdc/>
+                <throwableClassName/><throwableMessage/><stackTrace/>
             </providers>
-
-            <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
-                <patterns>
-                    <pattern>(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b</pattern>
-                    <pattern>(?i)\bbearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+(?:\.[A-Za-z0-9\-_]+)?\b</pattern>
-                    <pattern>(?i)\b(api[_-]?key|secret|token|password)\b\s*[:=]\s*[A-Za-z0-9\-._~/+=]{6,}</pattern>
-                    <pattern>\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b</pattern>
-                    <pattern>\b4\d{12}(\d{3})?\b</pattern>
-                    <pattern>\b5[1-5]\d{14}\b</pattern>
-                    <pattern>\b3[47]\d{13}\b</pattern>
-                    <pattern>\b3(?:0[0-5]|[68]\d)\d{11}\b</pattern>
-                    <pattern>\b6(?:011|5\d{2})\d{12}\b</pattern>
-                    <pattern>\b(?:2131|1800|35\d{3})\d{11}\b</pattern>
-                    <pattern>\+[1-9]\d{1,14}\b</pattern>
-                </patterns>
-                <mask>***</mask>
-            </jsonGeneratorDecorator>
         </encoder>
-
-        <filter class="ch.qos.logback.classic.filter.MarkerFilter">
-            <marker>BUSINESS</marker><onMatch>ACCEPT</onMatch><onMismatch>NEUTRAL</onMismatch>
-        </filter>
-        <filter class="ch.qos.logback.classic.filter.MarkerFilter">
-            <marker>SECURITY</marker><onMatch>ACCEPT</onMatch><onMismatch>DENY</onMismatch>
-        </filter>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>${BUSINESS_LEVEL}</level>
-        </filter>
     </appender>
 
-    <!-- ========== ASYNC WRAPPERS ========== -->
+    <!-- ASYNC wrappers -->
     <appender name="ASYNC_SYSTEM" class="ch.qos.logback.classic.AsyncAppender">
         <queueSize>8192</queueSize>
         <discardingThreshold>0</discardingThreshold>
         <neverBlock>true</neverBlock>
-        <maxFlushTime>1000</maxFlushTime>
-        <includeCallerData>false</includeCallerData>
-        <appender-ref ref="SYSTEM_JSON"/>
+        <appender-ref ref="SYSTEM_JSON_BASE"/>
     </appender>
 
     <appender name="ASYNC_BUSINESS" class="ch.qos.logback.classic.AsyncAppender">
         <queueSize>8192</queueSize>
         <discardingThreshold>0</discardingThreshold>
         <neverBlock>true</neverBlock>
-        <maxFlushTime>1000</maxFlushTime>
-        <includeCallerData>false</includeCallerData>
-        <appender-ref ref="BUSINESS_JSON"/>
+        <appender-ref ref="BUSINESS_JSON_BASE"/>
     </appender>
 
-    <!-- ========= TO: CONSOLE ========= -->
-    <springProfile name="console, default">
-        <appender name="SYSTEM_JSON" class="ch.qos.logback.core.rewrite.RewritingAppender">
-            <rewritePolicy class="ch.qos.logback.classic.rewrite.PropertyAddingRewritePolicy"/>
-            <appender-ref ref="SYSTEM_JSON_BASE"/>
-        </appender>
-        <appender name="BUSINESS_JSON" class="ch.qos.logback.core.rewrite.RewritingAppender">
-            <rewritePolicy class="ch.qos.logback.classic.rewrite.PropertyAddingRewritePolicy"/>
-            <appender-ref ref="BUSINESS_JSON_BASE"/>
-        </appender>
-    </springProfile>
-
-    <!-- ========= TO: FILE ========= -->
-    <springProfile name="file">
-        <appender name="SYSTEM_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
-            <file>${LOG_DIR}/${SYS_FILE_NAME}</file>
-            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-                <charset>UTF-8</charset>
-                <providers>
-                    <timestamp><fieldName>@timestamp</fieldName></timestamp>
-                    <logLevel><fieldName>log.level</fieldName></logLevel>
-                    <loggerName><fieldName>log.logger</fieldName></loggerName>
-                    <threadName><fieldName>log.thread</fieldName></threadName>
-                    <globalCustomFields><customFields>{"service":{"name":"${SERVICE_NAME}","version":"${SERVICE_VERSION}"},"env":"${ENV}"}</customFields></globalCustomFields>
-                    <globalCustomFields><customFields>{"event":{"category":"system"}}</customFields></globalCustomFields>
-                    <message><fieldName>message</fieldName></message>
-                    <nestedField>
-                        <fieldName>trace</fieldName>
-                        <providers>
-                            <mdcEntry><mdcKey>trace.correlation_id</mdcKey><fieldName>correlation_id</fieldName></mdcEntry>
-                            <mdcEntry><mdcKey>request.id</mdcKey><fieldName>request_id</fieldName></mdcEntry>
-                        </providers>
-                    </nestedField>
-                    <nestedField>
-                        <fieldName>actor</fieldName>
-                        <providers>
-                            <mdcEntry><mdcKey>actor.name</mdcKey><fieldName>name</fieldName></mdcEntry>
-                            <mdcEntry><mdcKey>actor.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                        </providers>
-                    </nestedField>
-                    <nestedField>
-                        <fieldName>entity</fieldName>
-                        <providers>
-                            <mdcEntry><mdcKey>entity.type</mdcKey><fieldName>type</fieldName></mdcEntry>
-                            <mdcEntry><mdcKey>entity.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                        </providers>
-                    </nestedField>
-                    <nestedField>
-                        <fieldName>target</fieldName>
-                        <providers>
-                            <mdcEntry><mdcKey>target.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                        </providers>
-                    </nestedField>
-                    <mdcEntry><mdcKey>outcome</mdcKey><fieldName>outcome</fieldName></mdcEntry>
-                    <mdcEntry><mdcKey>reason</mdcKey><fieldName>reason</fieldName></mdcEntry>
-                    <nestedField>
-                        <fieldName>exception</fieldName>
-                        <providers>
-                            <throwableClassName><fieldName>type</fieldName></throwableClassName>
-                            <throwableMessage><fieldName>message</fieldName></throwableMessage>
-                            <stackTrace><fieldName>stacktrace</fieldName></stackTrace>
-                        </providers>
-                    </nestedField>
-                    <nestedField>
-                        <fieldName>http</fieldName>
-                        <providers>
-                            <mdcEntry><mdcKey>http.method</mdcKey><fieldName>method</fieldName></mdcEntry>
-                            <mdcEntry><mdcKey>http.status</mdcKey><fieldName>status</fieldName></mdcEntry>
-                            <mdcEntry><mdcKey>http.url</mdcKey><fieldName>url</fieldName></mdcEntry>
-                        </providers>
-                    </nestedField>
-                </providers>
-                <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
-                    <patterns>
-                        <pattern>(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b</pattern>
-                        <pattern>(?i)\bbearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+(?:\.[A-Za-z0-9\-_]+)?\b</pattern>
-                        <pattern>(?i)\b(api[_-]?key|secret|token|password)\b\s*[:=]\s*[A-Za-z0-9\-._~/+=]{6,}</pattern>
-                        <pattern>\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b</pattern>
-                        <pattern>\b4\d{12}(\d{3})?\b</pattern>
-                        <pattern>\b5[1-5]\d{14}\b</pattern>
-                        <pattern>\b3[47]\d{13}\b</pattern>
-                        <pattern>\b3(?:0[0-5]|[68]\d)\d{11}\b</pattern>
-                        <pattern>\b6(?:011|5\d{2})\d{12}\b</pattern>
-                        <pattern>\b(?:2131|1800|35\d{3})\d{11}\b</pattern>
-                        <pattern>\+[1-9]\d{1,14}\b</pattern>
-                    </patterns>
-                    <mask>***</mask>
-                </jsonGeneratorDecorator>
-            </encoder>
-            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-                <fileNamePattern>${LOG_DIR}/system.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-                <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
-                <maxHistory>${MAX_HISTORY}</maxHistory>
-                <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
-                <cleanHistoryOnStart>true</cleanHistoryOnStart>
-            </rollingPolicy>
-            <filter class="ch.qos.logback.classic.filter.MarkerFilter">
-                <marker>BUSINESS</marker><onMatch>DENY</onMatch><onMismatch>NEUTRAL</onMismatch>
-            </filter>
-            <filter class="ch.qos.logback.classic.filter.MarkerFilter">
-                <marker>SECURITY</marker><onMatch>DENY</onMatch><onMismatch>NEUTRAL</onMismatch>
-            </filter>
-            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-                <level>${SYSTEM_LEVEL}</level>
-            </filter>
-        </appender>
-
-        <appender name="BUSINESS_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
-            <file>${LOG_DIR}/${BIZ_FILE_NAME}</file>
-            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-                <charset>UTF-8</charset>
-                <providers>
-                    <timestamp><fieldName>@timestamp</fieldName></timestamp>
-                    <logLevel><fieldName>log.level</fieldName></logLevel>
-                    <loggerName><fieldName>log.logger</fieldName></loggerName>
-                    <threadName><fieldName>log.thread</fieldName></threadName>
-                    <globalCustomFields><customFields>{"service":{"name":"${SERVICE_NAME}","version":"${SERVICE_VERSION}"},"env":"${ENV}"}</customFields></globalCustomFields>
-                    <globalCustomFields><customFields>{"event":{"category":"business"}}</customFields></globalCustomFields>
-                    <message><fieldName>message</fieldName></message>
-                    <nestedField>
-                        <fieldName>trace</fieldName>
-                        <providers>
-                            <mdcEntry><mdcKey>trace.correlation_id</mdcKey><fieldName>correlation_id</fieldName></mdcEntry>
-                            <mdcEntry><mdcKey>request.id</mdcKey><fieldName>request_id</fieldName></mdcEntry>
-                        </providers>
-                    </nestedField>
-                    <nestedField>
-                        <fieldName>actor</fieldName>
-                        <providers>
-                            <mdcEntry><mdcKey>actor.name</mdcKey><fieldName>name</fieldName></mdcEntry>
-                            <mdcEntry><mdcKey>actor.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                        </providers>
-                    </nestedField>
-                    <nestedField>
-                        <fieldName>entity</fieldName>
-                        <providers>
-                            <mdcEntry><mdcKey>entity.type</mdcKey><fieldName>type</fieldName></mdcEntry>
-                            <mdcEntry><mdcKey>entity.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                        </providers>
-                    </nestedField>
-                    <nestedField>
-                        <fieldName>target</fieldName>
-                        <providers>
-                            <mdcEntry><mdcKey>target.id</mdcKey><fieldName>id</fieldName></mdcEntry>
-                        </providers>
-                    </nestedField>
-                    <mdcEntry><mdcKey>outcome</mdcKey><fieldName>outcome</fieldName></mdcEntry>
-                    <mdcEntry><mdcKey>reason</mdcKey><fieldName>reason</fieldName></mdcEntry>
-                    <nestedField>
-                        <fieldName>exception</fieldName>
-                        <providers>
-                            <throwableClassName><fieldName>type</fieldName></throwableClassName>
-                            <throwableMessage><fieldName>message</fieldName></throwableMessage>
-                            <stackTrace><fieldName>stacktrace</fieldName></stackTrace>
-                        </providers>
-                    </nestedField>
-                    <nestedField>
-                        <fieldName>http</fieldName>
-                        <providers>
-                            <mdcEntry><mdcKey>http.method</mdcKey><fieldName>method</fieldName></mdcEntry>
-                            <mdcEntry><mdcKey>http.status</mdcKey><fieldName>status</fieldName></mdcEntry>
-                            <mdcEntry><mdcKey>http.url</mdcKey><fieldName>url</fieldName></mdcEntry>
-                        </providers>
-                    </nestedField>
-                </providers>
-                <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
-                    <patterns>
-                        <pattern>(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b</pattern>
-                        <pattern>(?i)\bbearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+(?:\.[A-Za-z0-9\-_]+)?\b</pattern>
-                        <pattern>(?i)\b(api[_-]?key|secret|token|password)\b\s*[:=]\s*[A-Za-z0-9\-._~/+=]{6,}</pattern>
-                        <pattern>\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b</pattern>
-                        <pattern>\b4\d{12}(\d{3})?\b</pattern>
-                        <pattern>\b5[1-5]\d{14}\b</pattern>
-                        <pattern>\b3[47]\d{13}\b</pattern>
-                        <pattern>\b3(?:0[0-5]|[68]\d)\d{11}\b</pattern>
-                        <pattern>\b6(?:011|5\d{2})\d{12}\b</pattern>
-                        <pattern>\b(?:2131|1800|35\d{3})\d{11}\b</pattern>
-                        <pattern>\+[1-9]\d{1,14}\b</pattern>
-                    </patterns>
-                    <mask>***</mask>
-                </jsonGeneratorDecorator>
-            </encoder>
-            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-                <fileNamePattern>${LOG_DIR}/business.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-                <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
-                <maxHistory>${MAX_HISTORY}</maxHistory>
-                <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
-                <cleanHistoryOnStart>true</cleanHistoryOnStart>
-            </rollingPolicy>
-            <filter class="ch.qos.logback.classic.filter.MarkerFilter">
-                <marker>BUSINESS</marker><onMatch>ACCEPT</onMatch><onMismatch>NEUTRAL</onMismatch>
-            </filter>
-            <filter class="ch.qos.logback.classic.filter.MarkerFilter">
-                <marker>SECURITY</marker><onMatch>ACCEPT</onMatch><onMismatch>DENY</onMismatch>
-            </filter>
-            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-                <level>${BUSINESS_LEVEL}</level>
-            </filter>
-        </appender>
-    </springProfile>
-
-    <!-- Root → SYSTEM -->
+    <!-- Root logger -->
     <root level="${SYSTEM_LEVEL}">
         <appender-ref ref="ASYNC_SYSTEM"/>
     </root>
 
-    <!-- Logger for BUSINESS/SECURITY -->
+    <!-- Business logger -->
     <logger name="xroigmartin.analyzcorp.audit.Business" level="${BUSINESS_LEVEL}" additivity="false">
         <appender-ref ref="ASYNC_BUSINESS"/>
     </logger>

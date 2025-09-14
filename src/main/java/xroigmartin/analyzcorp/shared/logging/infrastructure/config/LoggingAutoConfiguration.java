@@ -40,7 +40,7 @@ public class LoggingAutoConfiguration {
      */
     @Bean
     public SensitiveDataMasker sensitiveDataMasker() {
-        return SensitiveDataMasker.defaultMasker();
+        return SensitiveDataMasker.withMask(props.getMask());
     }
 
     /**

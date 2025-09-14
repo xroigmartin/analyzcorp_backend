@@ -13,7 +13,7 @@ import org.slf4j.MDC;
 public class MdcSafe {
 
     private static final int DEFAULT_MAX = 256;
-    private static final Pattern PRINTABLE = Pattern.compile("[\\p{Print}]+");
+    private static final Pattern PRINTABLE = Pattern.compile("\\P{Cntrl}+");
     private static int maxLen = DEFAULT_MAX;
 
     /** Globally set a maximum MDC value length (defaults to 256). */
