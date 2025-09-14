@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,7 @@ import xroigmartin.analyzcorp.shared.infrastructure.in.dto.open_api_schema.Empty
 @RequestMapping("/api/accounts")
 @RequiredArgsConstructor
 @Tag(name = "Accounts", description = "Operations related to user financial accounts")
+@Slf4j
 public class AccountController {
 
     private final GetAllAccountsUseCase getAllAccountsUseCase;
@@ -60,6 +62,7 @@ public class AccountController {
     })
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AnalyzCorpApiResponse<List<AccountDTO>>> getAccounts(){
+        log.info("GET /api/accounts - listing accounts");
         var accounts = getAllAccountsUseCase.execute();
 
         var accountDTOs = accounts.stream().map(this::toDto).toList();
@@ -68,6 +71,8 @@ public class AccountController {
                 .data(accountDTOs)
                 .timestamp(Instant.now().toString())
                 .build();
+
+        log.debug("GET /api/accounts - {} accounts returned ", accountDTOs.size());
 
         return ResponseEntity.ok(apiResponse);
     }
@@ -86,6 +91,9 @@ public class AccountController {
     })
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AnalyzCorpApiResponse<AccountDTO>> getAccountById(@PathVariable Long id){
+
+        log.info("GET /api/accounts/{} - retrieving account", id);
+
         var account = getAccountByIdUseCase.execute(id);
 
         var apiResponse = AnalyzCorpApiResponse.<AccountDTO>builder()
@@ -110,6 +118,7 @@ public class AccountController {
     })
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AnalyzCorpApiResponse<AccountDTO>> createAccount(@RequestBody CreateAccountDTO createAccountDTO){
+        log.info("POST /api/accounts - creating account name='{}'", createAccountDTO.name());
         var newAccount = new Account(null, createAccountDTO.name());
         var account = createAccountUseCase.execute(newAccount);
 
@@ -117,6 +126,8 @@ public class AccountController {
                 .data(toDto(account))
                 .timestamp(Instant.now().toString())
                 .build();
+
+        log.debug("POST /api/accounts - created id={}", account.id());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(apiResponse);
     }
@@ -136,6 +147,9 @@ public class AccountController {
     })
     @PutMapping(value="/{id}",  consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AnalyzCorpApiResponse<AccountDTO>> updateAccount(@PathVariable Long id, @RequestBody UpdateAccountDTO request){
+
+        log.info("PUT /api/accounts/{} - updating account", id);
+
         var accountToUpdate = Account.builder()
                 .id(id)
                 .name(request.name())
@@ -147,6 +161,8 @@ public class AccountController {
                 .data(toDto(accountUpdated))
                 .timestamp(Instant.now().toString())
                 .build();
+
+        log.debug("PUT /api/accounts/{} - updated", id);
 
         return ResponseEntity.ok(apiResponse);
     }
@@ -163,6 +179,9 @@ public class AccountController {
     })
     @DeleteMapping(value = "/{id}")
     public ResponseEntity<AnalyzCorpApiResponse<Void>> deleteAccount(@PathVariable Long id){
+
+        log.info("DELETE /api/accounts/{} - deleting account", id);
+
         deleteAccountUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }

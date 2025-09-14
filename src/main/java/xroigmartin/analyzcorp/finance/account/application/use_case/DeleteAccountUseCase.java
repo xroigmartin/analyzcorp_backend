@@ -2,6 +2,7 @@ package xroigmartin.analyzcorp.finance.account.application.use_case;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import xroigmartin.analyzcorp.finance.account.domain.events.AccountAction;
 import xroigmartin.analyzcorp.finance.account.domain.exception.AccountNotFoundByIdException;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountDeleteRepository;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountExistsRepository;
@@ -16,7 +17,7 @@ public class DeleteAccountUseCase {
     public void execute(Long id){
 
         if(!accountExistsRepository.existsAccountById(id)){
-            throw new AccountNotFoundByIdException(id);
+            throw new AccountNotFoundByIdException(id, AccountAction.FINANCE_ACCOUNT_DELETED);
         }
 
         accountDeleteRepository.deleteById(id);

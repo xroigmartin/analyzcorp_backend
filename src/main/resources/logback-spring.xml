@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds" debug="false">
+
+    <!-- Spring props -->
+    <springProperty scope="context" name="SYSTEM_LEVEL"   source="logging.level.system"    defaultValue="INFO"/>
+    <springProperty scope="context" name="BUSINESS_LEVEL" source="logging.level.business"  defaultValue="INFO"/>
+
+    <springProperty scope="context" name="LOG_DIR"        source="logging.file.path"        defaultValue="logs"/>
+    <springProperty scope="context" name="SYS_FILE_NAME"  source="logging.file.system"      defaultValue="system.log"/>
+    <springProperty scope="context" name="BIZ_FILE_NAME"  source="logging.file.business"    defaultValue="business.log"/>
+    <springProperty scope="context" name="MAX_FILE_SIZE"  source="logging.file.max-size"    defaultValue="50MB"/>
+    <springProperty scope="context" name="MAX_HISTORY"    source="logging.file.max-history" defaultValue="14"/>
+    <springProperty scope="context" name="TOTAL_SIZE_CAP" source="logging.file.total-cap"   defaultValue="2GB"/>
+
+    <property name="SERVICE_NAME"    value="${APP_NAME}"/>
+    <property name="SERVICE_VERSION" value="${VERSION}"/>
+    <property name="ENV"             value="${ENV}"/>
+
+    <!-- SYSTEM -->
+    <appender name="SYSTEM_JSON_BASE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp><fieldName>@timestamp</fieldName></timestamp>
+                <logLevel/><loggerName/><threadName/>
+                <message/>
+                <mdc/>
+                <throwableClassName/><throwableMessage/><stackTrace/>
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- BUSINESS -->
+    <appender name="BUSINESS_JSON_BASE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp><fieldName>@timestamp</fieldName></timestamp>
+                <logLevel/><loggerName/><threadName/>
+                <message/>
+                <mdc/>
+                <throwableClassName/><throwableMessage/><stackTrace/>
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- ASYNC wrappers -->
+    <appender name="ASYNC_SYSTEM" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>8192</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="SYSTEM_JSON_BASE"/>
+    </appender>
+
+    <appender name="ASYNC_BUSINESS" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>8192</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="BUSINESS_JSON_BASE"/>
+    </appender>
+
+    <!-- Root logger -->
+    <root level="${SYSTEM_LEVEL}">
+        <appender-ref ref="ASYNC_SYSTEM"/>
+    </root>
+
+    <!-- Business logger -->
+    <logger name="xroigmartin.analyzcorp.audit.Business" level="${BUSINESS_LEVEL}" additivity="false">
+        <appender-ref ref="ASYNC_BUSINESS"/>
+    </logger>
+</configuration>

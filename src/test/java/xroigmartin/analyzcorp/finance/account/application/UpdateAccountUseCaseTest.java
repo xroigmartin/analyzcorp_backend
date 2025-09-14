@@ -81,7 +81,7 @@ class UpdateAccountUseCaseTest extends BaseTest {
         // When / Then
         assertThatThrownBy(() -> useCase.execute(input))
                 .isInstanceOf(AccountNameAlreadyExistsException.class)
-                .hasMessageContaining(name);
+                .hasMessageContaining("Name of account already exists");
 
         verify(accountUpdateRepository, never()).update(any());
     }

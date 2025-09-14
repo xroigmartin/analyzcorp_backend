@@ -1,0 +1,41 @@
+package xroigmartin.analyzcorp.shared.logging.application;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Marker;
+import xroigmartin.analyzcorp.shared.logging.domain.AuditSink;
+import xroigmartin.analyzcorp.shared.logging.domain.Markers;
+import xroigmartin.analyzcorp.shared.logging.domain.mask.SensitiveDataMasker;
+import xroigmartin.analyzcorp.shared.logging.domain.model.BusinessEvent;
+
+/**
+ * Application service that serializes structured business/security events to JSON
+ * and emits them through an {@link AuditSink}. Provides both typed and map-based APIs.
+ */
+public class BusinessLogger {
+    private final ObjectMapper mapper;
+    private final SensitiveDataMasker masker; // kept for ad-hoc calls; universal masking also applies at encoder level
+    private final AuditSink sink;
+
+    public BusinessLogger(ObjectMapper mapper, SensitiveDataMasker masker, AuditSink sink) {
+        this.mapper = mapper;
+        this.masker = masker;
+        this.sink = sink;
+    }
+
+    /** Typed API (recommended). */
+    public void infoBusiness(BusinessEvent event) { emit(Markers.BUSINESS, event); }
+
+    /** Typed API (recommended). */
+    public void infoSecurity(BusinessEvent event) { emit(Markers.SECURITY, event); }
+
+    private void emit(Marker marker, BusinessEvent event) {
+        try {
+            var normalized = event.withCategory(
+                    marker == Markers.SECURITY ? xroigmartin.analyzcorp.shared.logging.domain.enums.EventCategory.SECURITY
+                            : xroigmartin.analyzcorp.shared.logging.domain.enums.EventCategory.BUSINESS
+            );
+            String json = mapper.writeValueAsString(normalized);
+            sink.emit(marker, masker.mask(json));
+        } catch (Exception ignored) { }
+    }
+}

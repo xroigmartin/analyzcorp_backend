@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import xroigmartin.analyzcorp.finance.account.domain.model.Account;
 import xroigmartin.analyzcorp.finance.account.domain.repository.AccountCreateRepository;
@@ -17,6 +18,7 @@ import xroigmartin.analyzcorp.finance.account.infrastructure.out.persistence.rep
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class AccountPersistenceAdapter implements AccountGetAllRepository, AccountCreateRepository,
         AccountGetByIdRepository, AccountUpdateRepository, AccountDeleteRepository, AccountExistsRepository {
 
@@ -24,6 +26,7 @@ public class AccountPersistenceAdapter implements AccountGetAllRepository, Accou
 
     @Override
     public List<Account> getAllAccounts() {
+        log.debug("Fetching all Accounts");
         var accounts =  accountRepository.findAll();
         return accounts.stream().map(this::toDto).toList();
     }
@@ -34,6 +37,7 @@ public class AccountPersistenceAdapter implements AccountGetAllRepository, Accou
 
     @Override
     public Account create(Account account) {
+        log.debug("Persisting Account[name='{}']", account.name());
         var accountEntity = new AccountEntity(null, account.name());
         accountRepository.save(accountEntity);
         return toDto(accountEntity);
@@ -41,6 +45,9 @@ public class AccountPersistenceAdapter implements AccountGetAllRepository, Accou
 
     @Override
     public Optional<Account> findById(Long id) {
+
+        log.debug("Fetching Account by id={}", id);
+
         return accountRepository
                 .findById(id)
                 .map(this::toDto);
@@ -48,6 +55,7 @@ public class AccountPersistenceAdapter implements AccountGetAllRepository, Accou
 
     @Override
     public Account update(Account account) {
+        log.debug("Updating Account[id={}, name='{}']", account.id(), account.name());
         Long id = account.id();
 
         AccountEntity accountEntity = accountRepository.getReferenceById(id);
@@ -61,16 +69,19 @@ public class AccountPersistenceAdapter implements AccountGetAllRepository, Accou
 
     @Override
     public void deleteById(Long id) {
+        log.debug("Deleting Account by id={}", id);
         accountRepository.deleteById(id);
     }
 
     @Override
     public boolean existsAccountByName(String name) {
+        log.trace("Checking existsByName='{}'", name);
         return accountRepository.existsByName(name);
     }
 
     @Override
     public boolean existsAccountById(Long id) {
+        log.trace("Checking existsById={}", id);
         return accountRepository.existsById(id);
     }
 }
