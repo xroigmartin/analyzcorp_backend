@@ -1,0 +1,60 @@
+# agent.config.yaml — backend-only (Java + Python)
+
+language: en
+
+output:
+  format: diff          # diff | file | plan+patch | json
+  dry_run_default: true
+  atomic: true
+
+paths:
+  allow:
+    # --- Java (source, resources, tests)
+    - "src/main/java/**"
+    - "src/main/resources/**"
+    - "src/test/java/**"
+    # --- Python (project src layouts + tests)
+    - "src/**.py"
+    - "src/**/*.py"
+    - "app/**.py"
+    - "app/**/*.py"
+    - "tests/**"
+    # --- Common backend docs/config
+    - "docs/**"
+    - "README.md"
+    - "CHANGELOG.md"
+    - "pyproject.toml"
+    - "requirements.txt"
+    - "requirements/*.txt"
+    - "setup.cfg"
+    - "setup.py"
+    - "pom.xml"
+    - "build.gradle"
+    - "settings.gradle"
+    - "gradle.properties"
+  deny:
+    # Build / artifacts (Java)
+    - "target/**"
+    - "build/**"
+    - ".gradle/**"
+    - ".mvn/**"
+    # Virtual envs / caches (Python)
+    - ".venv/**"
+    - "venv/**"
+    - "__pycache__/**"
+    - ".pytest_cache/**"
+    - ".mypy_cache/**"
+    - ".ruff_cache/**"
+    - ".tox/**"
+    # IDE / tooling metadata
+    - ".idea/**"
+    - ".vscode/**"
+
+security:
+  owasp_top10: true
+  mask_secrets_in_logs: true
+  block_on_secret_detection: true
+
+ci:
+  fail_on_dirty_worktree: true
+  min_coverage_percent: 80
